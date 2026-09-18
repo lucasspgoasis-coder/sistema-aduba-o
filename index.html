@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Aplicação de Adubação</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        agri: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js and DataLabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-agri-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-agri-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-agri-600 p-2.5 rounded-xl shadow-inner flex items-center justify-center">
+                        <i class="fa-solid fa-leaf text-2xl text-agri-100"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                            Controle de Aplicação de Adubação
+                            <span id="syncStatusBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Carregando...
+                            </span>
+                        </h1>
+                        <p class="text-xs text-agri-100/80 mt-0.5">Painel Geral de Monitoramento Agrícola</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+                    <button id="btnRefresh" onclick="loadSpreadsheetData()" class="px-3.5 py-2 bg-agri-700 hover:bg-agri-600 active:bg-agri-800 text-white text-sm font-medium rounded-lg transition duration-200 flex items-center gap-2 shadow-sm border border-agri-600">
+                        <i class="fa-solid fa-rotate text-xs"></i>
+                        <span>Sincronizar Dados</span>
+                    </button>
+                    <button onclick="toggleFallbackModal()" class="px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg transition border border-slate-700" title="Informações de Conexão">
+                        <i class="fa-solid fa-plug"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-agri-950/60 border-t border-agri-800/50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto py-2.5 scrollbar-none text-sm font-medium">
+                    <button id="tabBtn-daily" onclick="switchTab('daily')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap bg-agri-600 text-white shadow">
+                        <i class="fa-solid fa-chart-line text-agri-200"></i> <span>Dados Diários</span>
+                    </button>
+                    <button id="tabBtn-comparative" onclick="switchTab('comparative')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60">
+                        <i class="fa-solid fa-code-compare"></i> <span>Comparativo</span>
+                    </button>
+                    <button id="tabBtn-table" onclick="switchTab('table')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60">
+                        <i class="fa-solid fa-table-list"></i> <span>Tabela de Registros</span>
+                    </button>
+                    <button id="tabBtn-analytics" onclick="switchTab('analytics')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60">
+                        <i class="fa-solid fa-pie-chart"></i> <span>Análise Detalhada</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Global Filter Bar -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div class="flex items-center gap-2 text-slate-700 font-semibold text-sm min-w-max">
+                <i class="fa-solid fa-filter text-agri-600"></i>
+                <span>Filtros Globais:</span>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 w-full">
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Data Inicial</label>
+                    <input type="date" id="filterDateStart" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 focus:ring-agri-500 focus:border-agri-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Data Final</label>
+                    <input type="date" id="filterDateEnd" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 focus:ring-agri-500 focus:border-agri-500">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Setor</label>
+                    <select id="filterSetor" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 focus:ring-agri-500 focus:border-agri-500">
+                        <option value="ALL">Todos os Setores</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Produto</label>
+                    <select id="filterProduto" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 focus:ring-agri-500 focus:border-agri-500">
+                        <option value="ALL">Todos os Produtos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Busca</label>
+                    <div class="relative">
+                        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Aplicador, Colab..." class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 pl-8 focus:ring-agri-500 focus:border-agri-500">
+                        <i class="fa-solid fa-search absolute left-2.5 top-[10px] text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-end xl:self-end">
+                <button onclick="resetFilters()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-lg transition flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> Limpar
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 1: DADOS DIÁRIOS -->
+        <div id="tabContent-daily" class="tab-content active space-y-6">
+            
+            <!-- Cards Resumo / Geral KPIs -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- KPI 1 -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-agri-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total (kg) Aplicado</span>
+                            <div class="p-2 bg-agri-100 text-agri-700 rounded-xl"><i class="fa-solid fa-weight-hanging text-lg"></i></div>
+                        </div>
+                        <div class="mt-3">
+                            <span id="kpiTotalKg" class="text-2xl sm:text-3xl font-extrabold text-slate-800">0</span>
+                            <span class="text-xs text-slate-500 ml-1 font-medium">kg</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                            <i class="fa-solid fa-list-check text-agri-600"></i> <span id="kpiCountApps">0 registros</span>
+                        </p>
+                    </div>
+                </div>
+                <!-- KPI 2 -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Média de Tempo</span>
+                            <div class="p-2 bg-blue-100 text-blue-700 rounded-xl"><i class="fa-regular fa-clock text-lg"></i></div>
+                        </div>
+                        <div class="mt-3">
+                            <span id="kpiMediaTempo" class="text-2xl sm:text-3xl font-extrabold text-slate-800">00:00</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                            <i class="fa-solid fa-stopwatch text-blue-500"></i> <span id="kpiTotalTempo">Total: 0h 0m</span>
+                        </p>
+                    </div>
+                </div>
+                <!-- KPI 3 -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Média por Bloco/Setor</span>
+                            <div class="p-2 bg-amber-100 text-amber-700 rounded-xl"><i class="fa-solid fa-layer-group text-lg"></i></div>
+                        </div>
+                        <div class="mt-3">
+                            <span id="kpiMediaBloco" class="text-2xl sm:text-3xl font-extrabold text-slate-800">0</span>
+                            <span class="text-xs text-slate-500 ml-1 font-medium">kg/setor</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                            <i class="fa-solid fa-chart-pie text-amber-500"></i> <span id="kpiSetorCount">0 setores</span>
+                        </p>
+                    </div>
+                </div>
+                <!-- KPI 4 -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Produto Mais Aplicado</span>
+                            <div class="p-2 bg-purple-100 text-purple-700 rounded-xl"><i class="fa-solid fa-trophy text-lg"></i></div>
+                        </div>
+                        <div class="mt-3">
+                            <h3 id="kpiTopProdutoNome" class="text-lg font-bold text-slate-800 truncate">Nenhum</h3>
+                            <div class="text-xl font-extrabold text-purple-700 mt-0.5">
+                                <span id="kpiTopProdutoKg">0</span> <span class="text-xs text-slate-500 font-normal">kg</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                            <i class="fa-solid fa-percent text-purple-500"></i> <span id="kpiTopProdutoPercent">0% do total</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico 1: Total por Mês -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-bar text-agri-600"></i>
+                            Adubação Total por Mês
+                        </h2>
+                        <p class="text-xs text-slate-500">Soma de kg aplicados em cada mês</p>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-md self-start sm:self-auto">Total Mensal (kg)</span>
+                </div>
+                <div class="relative h-72 w-full">
+                    <canvas id="chartAdubacaoTotalMes"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico 2: Aplicação Média Diária por Mês -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day text-agri-600"></i>
+                            Aplicação Média Diária por Mês
+                        </h2>
+                        <p class="text-xs text-slate-500">Média de adubação diária segmentada por produto e total geral diário</p>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <i class="fa-solid fa-chart-simple text-agri-500"></i> Barras Individuais por Produto e Média Total
+                    </div>
+                </div>
+                <div class="relative h-80 sm:h-96 w-full">
+                    <canvas id="chartAplicacaoMediaDiariaMes"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: COMPARATIVO -->
+        <div id="tabContent-comparative" class="tab-content space-y-6">
+            <!-- Cards Comparativos -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden flex items-center gap-4">
+                    <div class="p-4 bg-teal-100 text-teal-700 rounded-2xl"><i class="fa-solid fa-calendar-week text-2xl"></i></div>
+                    <div>
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Semanas Ativas</span>
+                        <div class="mt-1 flex items-baseline gap-2">
+                            <span id="compKpiSemanas" class="text-3xl font-extrabold text-slate-800">0</span>
+                            <span class="text-sm text-slate-500 font-medium">semanas de aplicação</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden flex items-center gap-4">
+                    <div class="p-4 bg-indigo-100 text-indigo-700 rounded-2xl"><i class="fa-solid fa-truck-droplet text-2xl"></i></div>
+                    <div class="w-full">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Principal Meio de Aplicação</span>
+                        <div class="mt-1 flex justify-between items-end w-full">
+                            <span id="compKpiMeioNome" class="text-xl font-bold text-slate-800 truncate">Nenhum</span>
+                            <div class="text-right">
+                                <span id="compKpiMeioKg" class="text-xl font-extrabold text-indigo-700">0</span>
+                                <span class="text-xs text-slate-500">kg</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Gráfico 3: Total Aplicado por Semana -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                    <h3 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-agri-600"></i> Total Aplicado por Semana
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-4">Volume acumulado com base na coluna "Semana"</p>
+                    <div class="relative h-72">
+                        <canvas id="chartTotalSemana"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico 4: Total por Meio de Aplicação -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                    <h3 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-droplet text-agri-600"></i> Total por Meio da Aplicação
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-4">Distribuição de kg aplicados segundo o método</p>
+                    <div class="relative h-72">
+                        <canvas id="chartTotalMeio"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: TABELA GERAL DE REGISTROS -->
+        <div id="tabContent-table" class="tab-content space-y-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-table text-agri-600"></i> Registros de Aplicação
+                        </h2>
+                        <p class="text-xs text-slate-500">Lista completa com colunas sincronizadas da planilha oficial</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="exportTableToCSV()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv"></i> Exportar CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar max-h-[600px]">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Data</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Semana</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Setor</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Produto</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap text-right">Kg</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Variedade</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Meio Aplicação</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Início</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Fim</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Colaboradores</th>
+                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Aplicador</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                    </table>
+                </div>
+
+                <div class="p-4 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+                    <div>
+                        Exibindo <span id="tableShowingCount" class="font-bold text-slate-700">0</span> de <span id="tableTotalCount" class="font-bold text-slate-700">0</span> registros
+                    </div>
+                    <div id="tableTotalKgFooter" class="font-semibold text-agri-800 bg-agri-100 px-3 py-1 rounded-full">
+                        Total Filtrado: 0 kg
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: ANÁLISE DETALHADA -->
+        <div id="tabContent-analytics" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Breakdown by Setor -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                    <h3 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-agri-600"></i> Distribuição por Setor (Kg)
+                    </h3>
+                    <div class="relative h-72"><canvas id="chartSetorBreakdown"></canvas></div>
+                </div>
+
+                <!-- Breakdown by Aplicador -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
+                    <h3 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-user-check text-agri-600"></i> Aplicações por Aplicador (Kg)
+                    </h3>
+                    <div class="relative h-72"><canvas id="chartAplicadorBreakdown"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal -->
+    <div id="connectionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 border border-slate-200">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-link text-agri-600"></i> Fonte dos Dados</h3>
+                <button onclick="toggleFallbackModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="text-xs text-slate-600 space-y-3">
+                <p>Buscando dados da planilha do Google Sheets através do link CSV:</p>
+                <div class="bg-slate-100 p-2.5 rounded-lg break-all font-mono text-[11px] text-slate-700 border border-slate-200">
+                    https://docs.google.com/spreadsheets/d/e/2PACX-1vTJfPIEW6e5KKB1AHQGEptWfx3ZgF8np8eRyn2tFxVIIS8COWQIk0SS3V5n75k6BJoqd0teSi8suhvJ/pub?output=csv
+                </div>
+            </div>
+            <div class="pt-2 flex justify-end">
+                <button onclick="toggleFallbackModal()" class="px-4 py-2 bg-agri-700 hover:bg-agri-800 text-white rounded-lg text-xs font-semibold">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTJfPIEW6e5KKB1AHQGEptWfx3ZgF8np8eRyn2tFxVIIS8COWQIk0SS3V5n75k6BJoqd0teSi8suhvJ/pub?output=csv';
+        let rawData = [];
+        let filteredData = [];
+        
+        // Chart instances
+        let chartAdubTotalMesInst = null;
+        let chartAplicMesInst = null;
+        let chartSemanaInst = null;
+        let chartMeioInst = null;
+        let chartSetorInst = null;
+        let chartAplicadorInst = null;
+
+        const fallbackDataset = [
+            { Data: "05/01/2026", Semana: "1", Setor: "Setor A", Produto: "NPK 10-10-10", Kg: "150", Variedade: "Bourbon", "Meio da aplicação": "Via Solo", Inicio: "07:30", Fim: "09:30", Colaboradores: "2", Aplicador: "Carlos" },
+            { Data: "12/01/2026", Semana: "2", Setor: "Setor B", Produto: "Ureia", Kg: "220", Variedade: "Catuaí", "Meio da aplicação": "Fertirrigação", Inicio: "08:00", Fim: "11:00", Colaboradores: "1", Aplicador: "João" }
+        ];
+
+        Chart.register(ChartDataLabels);
+
+        window.onload = () => loadSpreadsheetData();
+
+        function toggleFallbackModal() {
+            document.getElementById('connectionModal').classList.toggle('hidden');
+        }
+
+        // Safe DOM updater to prevent "Cannot set properties of null" error
+        function setInnerText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
+
+        function loadSpreadsheetData() {
+            updateStatusBadge('syncing');
+            const fetchUrl = `${CSV_URL}&t=${new Date().getTime()}`;
+
+            Papa.parse(fetchUrl, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        rawData = cleanData(results.data);
+                        updateStatusBadge('online');
+                        processAndRenderData();
+                    } else {
+                        useFallback('Planilha vazia ou sem estrutura válida.');
+                    }
+                },
+                error: function(err) {
+                    console.warn("Erro no CSV, usando contingência:", err);
+                    useFallback('Conectado via Dados de Contingência');
+                }
+            });
+        }
+
+        function useFallback(message) {
+            rawData = cleanData(fallbackDataset);
+            updateStatusBadge('fallback', message);
+            processAndRenderData();
+        }
+
+        function updateStatusBadge(type, customText) {
+            const badge = document.getElementById('syncStatusBadge');
+            if (!badge) return;
+            if (type === 'syncing') {
+                badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800';
+                badge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Sincronizando...';
+            } else if (type === 'online') {
+                badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800';
+                badge.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Planilha Ao Vivo';
+            } else {
+                badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-700';
+                badge.innerHTML = `<i class="fa-solid fa-database mr-1"></i> ${customText || 'Modo Local'}`;
+            }
+        }
+
+        function cleanData(data) {
+            return data.map(item => {
+                const getVal = (keys) => {
+                    for (let k of keys) {
+                        for (let a in item) {
+                            if (a.trim().toLowerCase() === k.toLowerCase()) return item[a];
+                        }
+                    }
+                    return '';
+                };
+
+                const dataVal = getVal(['Data', 'data', 'DATE']);
+                const kgVal = getVal(['Kg', 'kg', 'KG', 'Quantidade']);
+                const inicioVal = getVal(['Inicio', 'Início', 'inicio']);
+                const fimVal = getVal(['Fim', 'fim']);
+
+                let parsedKg = 0;
+                if (kgVal) {
+                    parsedKg = parseFloat(String(kgVal).replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+                }
+
+                const dateObj = parseDateString(dataVal);
+
+                return {
+                    Data: dataVal || 'N/A',
+                    DateObj: dateObj,
+                    MonthKey: dateObj ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}` : 'Outros',
+                    MonthLabel: dateObj ? dateObj.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : 'Outros',
+                    DayKey: dateObj ? dateObj.toISOString().split('T')[0] : 'Unknown',
+                    Semana: getVal(['Semana', 'semana']) || 'N/A',
+                    Setor: getVal(['Setor', 'setor', 'Bloco']) || 'N/A',
+                    Produto: getVal(['Produto', 'produto']) || 'N/A',
+                    Kg: parsedKg,
+                    Variedade: getVal(['Variedade', 'variedade']) || 'N/A',
+                    MeioAplicacao: getVal(['Meio da aplicação', 'meio da aplicação', 'Meio', 'Meio de aplicacao']) || 'N/A',
+                    Inicio: inicioVal || 'N/A',
+                    Fim: fimVal || 'N/A',
+                    Colaboradores: getVal(['Colaboradores', 'colaboradores']) || 'N/A',
+                    Aplicador: getVal(['Aplicador', 'aplicador']) || 'N/A',
+                    DurationMinutes: calcMinutes(inicioVal, fimVal)
+                };
+            }).filter(row => row.Kg > 0 || row.Setor !== 'N/A' || row.Produto !== 'N/A');
+        }
+
+        function parseDateString(str) {
+            if (!str) return null;
+            const parts = str.split(/[\/\-]/);
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]); // YYYY-MM-DD
+                if (parts[2].length === 4) return new Date(parts[2], parts[1] - 1, parts[0]); // DD-MM-YYYY
+            }
+            const d = new Date(str);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function calcMinutes(inicio, fim) {
+            if (!inicio || !fim || inicio === 'N/A' || fim === 'N/A') return 0;
+            try {
+                const p = (t) => { const [h, m] = t.split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+                const diff = p(fim) - p(inicio);
+                return diff > 0 ? diff : 0;
+            } catch (e) { return 0; }
+        }
+
+        function processAndRenderData() {
+            populateFilterOptions();
+            applyFilters();
+        }
+
+        function populateFilterOptions() {
+            const setorSel = document.getElementById('filterSetor');
+            const prodSel = document.getElementById('filterProduto');
+            if(!setorSel || !prodSel) return;
+
+            const cSetor = setorSel.value;
+            const cProd = prodSel.value;
+
+            const setores = [...new Set(rawData.map(r => r.Setor))].filter(Boolean).sort();
+            const produtos = [...new Set(rawData.map(r => r.Produto))].filter(Boolean).sort();
+
+            setorSel.innerHTML = '<option value="ALL">Todos os Setores</option>' + setores.map(s => `<option value="${s}">${s}</option>`).join('');
+            prodSel.innerHTML = '<option value="ALL">Todos os Produtos</option>' + produtos.map(p => `<option value="${p}">${p}</option>`).join('');
+
+            setorSel.value = setores.includes(cSetor) ? cSetor : 'ALL';
+            prodSel.value = produtos.includes(cProd) ? cProd : 'ALL';
+        }
+
+        function applyFilters() {
+            const dateStartEl = document.getElementById('filterDateStart');
+            const dateEndEl = document.getElementById('filterDateEnd');
+            const setorEl = document.getElementById('filterSetor');
+            const produtoEl = document.getElementById('filterProduto');
+            const searchEl = document.getElementById('filterSearch');
+
+            const startStr = dateStartEl ? dateStartEl.value : '';
+            const endStr = dateEndEl ? dateEndEl.value : '';
+            
+            const startDate = startStr ? new Date(startStr + 'T00:00:00') : null;
+            const endDate = endStr ? new Date(endStr + 'T23:59:59') : null;
+
+            const setor = setorEl ? setorEl.value : 'ALL';
+            const produto = produtoEl ? produtoEl.value : 'ALL';
+            const search = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+            filteredData = rawData.filter(item => {
+                if (startDate && item.DateObj && item.DateObj < startDate) return false;
+                if (endDate && item.DateObj && item.DateObj > endDate) return false;
+                if (setor !== 'ALL' && item.Setor !== setor) return false;
+                if (produto !== 'ALL' && item.Produto !== produto) return false;
+                if (search) {
+                    const str = `${item.Aplicador} ${item.Colaboradores} ${item.Variedade} ${item.MeioAplicacao}`.toLowerCase();
+                    if (!str.includes(search)) return false;
+                }
+                return true;
+            });
+
+            updateKPIs();
+            renderCharts();
+            renderTable();
+        }
+
+        function resetFilters() {
+            if(document.getElementById('filterDateStart')) document.getElementById('filterDateStart').value = '';
+            if(document.getElementById('filterDateEnd')) document.getElementById('filterDateEnd').value = '';
+            if(document.getElementById('filterSetor')) document.getElementById('filterSetor').value = 'ALL';
+            if(document.getElementById('filterProduto')) document.getElementById('filterProduto').value = 'ALL';
+            if(document.getElementById('filterSearch')) document.getElementById('filterSearch').value = '';
+            applyFilters();
+        }
+
+        function updateKPIs() {
+            // TAB 1 KPIs
+            const totalKg = filteredData.reduce((acc, r) => acc + r.Kg, 0);
+            setInnerText('kpiTotalKg', totalKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
+            setInnerText('kpiCountApps', `${filteredData.length} registros no filtro`);
+
+            const validDurations = filteredData.filter(r => r.DurationMinutes > 0);
+            const totalMinutes = validDurations.reduce((acc, r) => acc + r.DurationMinutes, 0);
+            const avgMinutes = validDurations.length > 0 ? Math.round(totalMinutes / validDurations.length) : 0;
+            const hours = Math.floor(avgMinutes / 60);
+            const mins = avgMinutes % 60;
+            setInnerText('kpiMediaTempo', hours > 0 ? `${hours}h ${mins}m` : `${mins} min`);
+            setInnerText('kpiTotalTempo', `Acumulado: ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`);
+
+            const activeSetores = [...new Set(filteredData.map(r => r.Setor))].filter(s => s !== 'N/A');
+            setInnerText('kpiMediaBloco', activeSetores.length > 0 ? Math.round(totalKg / activeSetores.length).toLocaleString('pt-BR') : '0');
+            setInnerText('kpiSetorCount', `${activeSetores.length} setores`);
+
+            const prodTotals = {};
+            filteredData.forEach(r => {
+                if (r.Produto && r.Produto !== 'N/A') prodTotals[r.Produto] = (prodTotals[r.Produto] || 0) + r.Kg;
+            });
+
+            let topProd = 'Nenhum', maxKg = 0;
+            for (let p in prodTotals) { if (prodTotals[p] > maxKg) { maxKg = prodTotals[p]; topProd = p; } }
+            
+            setInnerText('kpiTopProdutoNome', topProd);
+            const titleEl = document.getElementById('kpiTopProdutoNome');
+            if(titleEl) titleEl.title = topProd;
+
+            setInnerText('kpiTopProdutoKg', maxKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
+            setInnerText('kpiTopProdutoPercent', totalKg > 0 ? `${((maxKg / totalKg) * 100).toFixed(1)}% do total` : '0% do total');
+
+            // TAB 2 (Comparativo) KPIs
+            const uniqueWeeks = new Set(filteredData.map(r => r.Semana).filter(s => s !== 'N/A'));
+            setInnerText('compKpiSemanas', uniqueWeeks.size.toString());
+
+            const meioTotals = {};
+            filteredData.forEach(r => {
+                if (r.MeioAplicacao && r.MeioAplicacao !== 'N/A') meioTotals[r.MeioAplicacao] = (meioTotals[r.MeioAplicacao] || 0) + r.Kg;
+            });
+
+            let topMeio = 'Nenhum', maxMeioKg = 0;
+            for (let m in meioTotals) { if (meioTotals[m] > maxMeioKg) { maxMeioKg = meioTotals[m]; topMeio = m; } }
+            
+            setInnerText('compKpiMeioNome', topMeio);
+            const compTitleEl = document.getElementById('compKpiMeioNome');
+            if(compTitleEl) compTitleEl.title = topMeio;
+            setInnerText('compKpiMeioKg', maxMeioKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
+        }
+
+        function renderCharts() {
+            // Grouping Month
+            const monthlyData = {};
+            filteredData.forEach(r => {
+                const k = r.MonthKey;
+                if (!monthlyData[k]) monthlyData[k] = { label: r.MonthLabel, totalKg: 0, uniqueDays: new Set(), products: {} };
+                monthlyData[k].totalKg += r.Kg;
+                if (r.DayKey && r.DayKey !== 'Unknown') monthlyData[k].uniqueDays.add(r.DayKey);
+                const p = r.Produto;
+                monthlyData[k].products[p] = (monthlyData[k].products[p] || 0) + r.Kg;
+            });
+
+            const sortedMonths = Object.keys(monthlyData).sort();
+            const monthLabels = sortedMonths.map(k => monthlyData[k].label);
+            
+            // 1. Total Adubação por Mês (Changed from average to Total per User Request)
+            const totalMensal = sortedMonths.map(k => parseFloat(monthlyData[k].totalKg.toFixed(1)));
+            renderAdubacaoTotalChart(monthLabels, totalMensal);
+
+            // 2. Aplicação Média Diária por Mês (stacked)
+            const allProducts = [...new Set(filteredData.map(r => r.Produto))].filter(Boolean);
+            const productDatasets = allProducts.map((pName, idx) => {
+                const colors = ['#16a34a', '#2563eb', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#4f46e5'];
+                return {
+                    label: pName,
+                    data: sortedMonths.map(m => {
+                        const days = monthlyData[m].uniqueDays.size || 1;
+                        return parseFloat(((monthlyData[m].products[pName] || 0) / days).toFixed(1));
+                    }),
+                    backgroundColor: colors[idx % colors.length],
+                    borderRadius: 4
+                };
+            });
+            const monthlyAvgTotal = sortedMonths.map(m => {
+                const days = monthlyData[m].uniqueDays.size || 1;
+                return parseFloat((monthlyData[m].totalKg / days).toFixed(1));
+            });
+            productDatasets.push({
+                label: 'Média Diária Total',
+                data: monthlyAvgTotal,
+                backgroundColor: '#475569',
+                borderRadius: 4
+            });
+            renderAplicacaoDiariaChart(monthLabels, productDatasets);
+
+            // Grouping Comparativo
+            const weeksData = {}, meioData = {};
+            filteredData.forEach(r => {
+                if (r.Semana !== 'N/A') weeksData[r.Semana] = (weeksData[r.Semana] || 0) + r.Kg;
+                if (r.MeioAplicacao !== 'N/A') meioData[r.MeioAplicacao] = (meioData[r.MeioAplicacao] || 0) + r.Kg;
+            });
+
+            renderSemanaChart(weeksData);
+            renderMeioChart(meioData);
+            
+            // Analytics Tab
+            renderSetorChart();
+            renderAplicadorChart();
+        }
+
+        function renderAdubacaoTotalChart(labels, data) {
+            const ctx = document.getElementById('chartAdubacaoTotalMes');
+            if(!ctx) return;
+            if (chartAdubTotalMesInst) chartAdubTotalMesInst.destroy();
+            chartAdubTotalMesInst = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: 'Total (kg)', data: data, backgroundColor: '#16a34a', borderRadius: 8 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { anchor: 'end', align: 'top', formatter: v => v > 0 ? `${v.toLocaleString('pt-BR')} kg` : '', font: { weight: 'bold', size: 11 }, color: '#1e293b' }
+                    },
+                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Total (kg)' } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        function renderAplicacaoDiariaChart(labels, datasets) {
+            const ctx = document.getElementById('chartAplicacaoMediaDiariaMes');
+            if(!ctx) return;
+            if (chartAplicMesInst) chartAplicMesInst.destroy();
+            chartAplicMesInst = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } },
+                        tooltip: { mode: 'index', intersect: false },
+                        datalabels: {
+                            anchor: 'end', align: 'top',
+                            formatter: (val) => val > 0 ? val.toLocaleString('pt-BR') : '',
+                            font: { weight: 'bold', size: 10 }, color: '#475569'
+                        }
+                    },
+                    scales: { 
+                        x: { grid: { display: false } }, 
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Média Diária (kg/dia)' } } 
+                    }
+                }
+            });
+        }
+
+        function renderSemanaChart(dataObj) {
+            const ctx = document.getElementById('chartTotalSemana');
+            if(!ctx) return;
+            if (chartSemanaInst) chartSemanaInst.destroy();
+
+            const sortedKeys = Object.keys(dataObj).sort((a,b) => parseInt(a) - parseInt(b));
+            const labels = sortedKeys.map(k => `Semana ${k}`);
+            const data = sortedKeys.map(k => dataObj[k]);
+
+            chartSemanaInst = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: { labels: labels, datasets: [{ label: 'Total (kg)', data: data, borderColor: '#0284c7', backgroundColor: '#e0f2fe', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#0284c7' }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { anchor: 'end', align: 'top', font: { size: 10, weight: 'bold' }, formatter: v => v.toLocaleString('pt-BR') }
+                    },
+                    scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+        function renderMeioChart(dataObj) {
+            const ctx = document.getElementById('chartTotalMeio');
+            if(!ctx) return;
+            if (chartMeioInst) chartMeioInst.destroy();
+            const labels = Object.keys(dataObj);
+            const data = Object.values(dataObj);
+            chartMeioInst = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6'] }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        datalabels: { color: '#fff', font: { weight: 'bold' }, formatter: (val, ctx) => {
+                            const sum = ctx.dataset.data.reduce((a,b) => a+b,0);
+                            return sum > 0 ? ((val*100)/sum).toFixed(0) + '%' : '';
+                        }}
+                    }
+                }
+            });
+        }
+
+        function renderSetorChart() {
+            const ctx = document.getElementById('chartSetorBreakdown');
+            if(!ctx) return;
+            if (chartSetorInst) chartSetorInst.destroy();
+            const t = {}; filteredData.forEach(r => { if(r.Setor) t[r.Setor] = (t[r.Setor]||0) + r.Kg; });
+            chartSetorInst = new Chart(ctx.getContext('2d'), {
+                type: 'pie',
+                data: { labels: Object.keys(t), datasets: [{ data: Object.values(t), backgroundColor: ['#16a34a', '#2563eb', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#4f46e5', '#84cc16', '#06b6d4', '#eab308'] }] },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { position: 'right' }, 
+                        datalabels: { 
+                            display: true, color: '#fff', font: { weight: 'bold', size: 11 },
+                            formatter: (val, ctx) => {
+                                const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
+                                return sum > 0 && val > 0 ? ((val/sum)*100).toFixed(1) + '%' : '';
+                            }
+                        } 
+                    } 
+                }
+            });
+        }
+
+        function renderAplicadorChart() {
+            const ctx = document.getElementById('chartAplicadorBreakdown');
+            if(!ctx) return;
+            if (chartAplicadorInst) chartAplicadorInst.destroy();
+            
+            const aplicadoresSet = new Set();
+            const meiosSet = new Set();
+            
+            filteredData.forEach(r => {
+                aplicadoresSet.add(r.Aplicador || 'Não Info');
+                meiosSet.add(r.MeioAplicacao || 'Não Info');
+            });
+            
+            const aplicadores = [...aplicadoresSet].sort();
+            const meios = [...meiosSet].sort();
+            const colors = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
+            
+            const datasets = meios.map((meio, idx) => {
+                return {
+                    label: meio,
+                    data: aplicadores.map(apl => {
+                        return filteredData
+                            .filter(r => (r.Aplicador || 'Não Info') === apl && (r.MeioAplicacao || 'Não Info') === meio)
+                            .reduce((sum, r) => sum + r.Kg, 0);
+                    }),
+                    backgroundColor: colors[idx % colors.length],
+                    borderRadius: 4
+                };
+            });
+
+            chartAplicadorInst = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: { labels: aplicadores, datasets: datasets },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, indexAxis: 'y', 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } }, 
+                        datalabels: { 
+                            anchor: 'center', align: 'center', color: '#fff', font: { size: 10, weight: 'bold' },
+                            formatter: (val, ctx) => {
+                                if (val === 0) return '';
+                                let totalApl = 0;
+                                ctx.chart.data.datasets.forEach(ds => {
+                                    totalApl += ds.data[ctx.dataIndex];
+                                });
+                                return totalApl > 0 ? ((val / totalApl) * 100).toFixed(0) + '%' : '';
+                            }
+                        } 
+                    },
+                    scales: {
+                        x: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Kg Aplicado' } },
+                        y: { stacked: true, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            filteredData.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = idx % 2 === 0 ? 'bg-white hover:bg-slate-50 transition' : 'bg-slate-50/50 hover:bg-slate-100/60 transition';
+                tr.innerHTML = `
+                    <td class="p-3.5 whitespace-nowrap font-medium text-slate-800">${row.Data}</td>
+                    <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 bg-slate-100 rounded text-slate-600">Sem ${row.Semana}</span></td>
+                    <td class="p-3.5 whitespace-nowrap"><span class="font-semibold text-agri-800">${row.Setor}</span></td>
+                    <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-1 bg-agri-50 text-agri-700 font-medium rounded-lg border border-agri-100">${row.Produto}</span></td>
+                    <td class="p-3.5 whitespace-nowrap font-bold text-slate-800 text-right">${row.Kg.toLocaleString('pt-BR')} kg</td>
+                    <td class="p-3.5 whitespace-nowrap text-slate-600">${row.Variedade}</td>
+                    <td class="p-3.5 whitespace-nowrap text-slate-600">${row.MeioAplicacao}</td>
+                    <td class="p-3.5 whitespace-nowrap text-slate-500">${row.Inicio}</td>
+                    <td class="p-3.5 whitespace-nowrap text-slate-500">${row.Fim}</td>
+                    <td class="p-3.5 whitespace-nowrap text-slate-600">${row.Colaboradores}</td>
+                    <td class="p-3.5 whitespace-nowrap"><span class="font-medium text-slate-700"><i class="fa-solid fa-user-circle text-slate-400 mr-1"></i>${row.Aplicador}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            const tF = filteredData.reduce((a, b) => a + b.Kg, 0);
+            setInnerText('tableShowingCount', filteredData.length.toString());
+            setInnerText('tableTotalCount', rawData.length.toString());
+            setInnerText('tableTotalKgFooter', `Total Filtrado: ${tF.toLocaleString('pt-BR')} kg`);
+        }
+
+        function exportTableToCSV() {
+            if (!filteredData.length) return alert('Nenhum dado disponível.');
+            const headers = ['Data', 'Semana', 'Setor', 'Produto', 'Kg', 'Variedade', 'Meio da aplicacao', 'Inicio', 'Fim', 'Colaboradores', 'Aplicador'];
+            let csv = 'data:text/csv;charset=utf-8,\uFEFF' + headers.join(';') + '\n';
+            filteredData.forEach(r => {
+                csv += [r.Data, r.Semana, r.Setor, r.Produto, r.Kg, r.Variedade, r.MeioAplicacao, r.Inicio, r.Fim, r.Colaboradores, r.Aplicador].map(e => `"${e}"`).join(';') + '\n';
+            });
+            const a = document.createElement('a'); a.href = encodeURI(csv);
+            a.download = `adubacao_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['daily', 'comparative', 'table', 'analytics'];
+            tabs.forEach(t => {
+                const content = document.getElementById(`tabContent-${t}`);
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (!content || !btn) return;
+                
+                if (t === tabName) {
+                    content.classList.add('active');
+                    btn.className = 'tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap bg-agri-600 text-white shadow';
+                } else {
+                    content.classList.remove('active');
+                    btn.className = 'tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60';
+                }
+            });
+
+            // Resizing charts on layout changes to keep proportions
+            const res = (inst) => { if(inst) inst.resize(); };
+            if (tabName === 'daily') { res(chartAdubTotalMesInst); res(chartAplicMesInst); }
+            if (tabName === 'comparative') { res(chartSemanaInst); res(chartMeioInst); }
+            if (tabName === 'analytics') { res(chartSetorInst); res(chartAplicadorInst); }
+        }
+    </script>
+</body>
+</html>
