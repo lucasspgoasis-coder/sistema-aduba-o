@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Aplicação de Adubação</title>
+    <title>Registro de Uso da Roçadeira</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,15 +12,15 @@
             theme: {
                 extend: {
                     colors: {
-                        agri: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
-                            950: '#052e16'
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316', // Orange theme
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                            950: '#431407'
                         }
                     }
                 }
@@ -41,7 +41,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
-    <!-- Export Libraries -->
+    <!-- Libraries for Export (PDF and HTML-to-Image) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -52,39 +52,79 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-agri-500 selection:text-white">
+<body class="h-full text-slate-800 antialiased selection:bg-brand-500 selection:text-white bg-slate-50">
+
+    <div id="loginScreen" class="fixed inset-0 z-[200] bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-slate-200 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-brand-500"></div>
+            
+            <img src="https://i.imgur.com/bEBkelG.png" alt="Logo" class="w-24 h-24 mx-auto object-contain mb-4">
+            
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Acesso Restrito</h2>
+            <p class="text-sm text-slate-500 mb-8">Insira suas credenciais para entrar no sistema</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5 text-left">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5"><i class="fa-solid fa-user text-slate-400 mr-1"></i> Login</label>
+                    <input type="text" id="usernameInput" placeholder="Digite seu usuário" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5"><i class="fa-solid fa-lock text-slate-400 mr-1"></i> Senha</label>
+                    <input type="password" id="passwordInput" placeholder="Digite sua senha" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow" required>
+                </div>
+                
+                <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm font-medium rounded-lg p-3 text-center">
+                    Credenciais incorretas. Tente novamente.
+                </div>
+                
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold py-3 rounded-lg transition duration-200 flex items-center justify-center gap-2 shadow-md mt-4">
+                    <i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema
+                </button>
+            </form>
+        </div>
+        <p class="mt-8 text-slate-500 text-xs font-medium tracking-wider uppercase">Controle de Equipamentos &copy; 2026</p>
+    </div>
+
+    <!-- Main App Container (Hidden Initially) -->
+    <div id="mainApp" class="hidden h-full flex-col">
 
     <!-- Header -->
-    <header class="bg-agri-900 text-white shadow-lg sticky top-0 z-50 transition-all duration-300" id="mainHeader">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <!-- Brand / Logo -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="flex items-center space-x-3">
-                    <div class="flex items-center justify-center">
-                        <img src="https://i.imgur.com/GZPcOWg.png" alt="Logo" class="h-10 w-auto object-contain">
-                    </div>
+                    <!-- Updated Logo Sem Contorno -->
+                    <img src="https://i.imgur.com/bEBkelG.png" alt="Logo" class="w-12 h-12 object-contain">
                     <div>
                         <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                            Controle de Aplicação de Adubação
-                            <span id="syncStatusBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            Registro de Uso da Roçadeira
+                        </h1>
+                        <p class="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+                            Monitoramento de Equipamentos
+                            <span id="syncStatusBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                 <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Carregando...
                             </span>
-                        </h1>
-                        <p class="text-xs text-agri-100/80 mt-0.5">Painel Geral de Monitoramento Agrícola</p>
+                        </p>
                     </div>
                 </div>
 
-                <!-- Global Action Buttons -->
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <button id="btnExport" onclick="openExportModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition duration-200 flex items-center gap-2 shadow-sm border border-indigo-500">
-                        <i class="fa-solid fa-file-export text-xs"></i>
+                <div class="flex items-center gap-2">
+                    <!-- Export Button -->
+                    <button onclick="openExportModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-semibold rounded-lg transition duration-200 flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-download"></i>
                         <span>Exportar Relatório</span>
                     </button>
-                    <button id="btnRefresh" onclick="loadSpreadsheetData()" class="px-3.5 py-2 bg-agri-700 hover:bg-agri-600 active:bg-agri-800 text-white text-xs font-semibold rounded-lg transition duration-200 flex items-center gap-2 shadow-sm border border-agri-600">
-                        <i class="fa-solid fa-rotate text-xs"></i>
+                    <!-- Sync Button -->
+                    <button onclick="loadSpreadsheetData()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-950 text-white text-xs font-semibold rounded-lg transition duration-200 flex items-center gap-2 border border-slate-700 shadow-sm">
+                        <i class="fa-solid fa-rotate-right"></i>
                         <span>Sincronizar</span>
                     </button>
                 </div>
@@ -92,467 +132,418 @@
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="bg-agri-950/60 border-t border-agri-800/50" id="mainNav">
+        <div class="bg-slate-950 border-t border-slate-800">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto py-2.5 scrollbar-none text-sm font-medium">
-                    <button id="tabBtn-daily" onclick="switchTab('daily')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap bg-agri-600 text-white shadow">
-                        <i class="fa-solid fa-chart-line text-agri-200"></i> <span>Dados Diários</span>
+                <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto py-3 custom-scrollbar text-sm font-medium">
+                    <button id="tabBtn-gerais" onclick="switchTab('gerais')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap bg-brand-600 text-white shadow-md">
+                        <i class="fa-solid fa-chart-pie text-brand-100"></i> <span>Dados Gerais</span>
                     </button>
-                    <button id="tabBtn-comparative" onclick="switchTab('comparative')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60">
-                        <i class="fa-solid fa-code-compare"></i> <span>Comparativo</span>
+                    <button id="tabBtn-comparativo" onclick="switchTab('comparativo')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i class="fa-solid fa-scale-balanced"></i> <span>Comparativo</span>
                     </button>
-                    <button id="tabBtn-table" onclick="switchTab('table')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60">
+                    <button id="tabBtn-manuseio" onclick="switchTab('manuseio')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <i class="fa-solid fa-people-carry-box"></i> <span>Manuseio</span>
+                    </button>
+                    <button id="tabBtn-tabela" onclick="switchTab('tabela')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-slate-300 hover:bg-slate-800 hover:text-white">
                         <i class="fa-solid fa-table-list"></i> <span>Tabela de Registros</span>
                     </button>
-                    <button id="tabBtn-analytics" onclick="switchTab('analytics')" class="tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60">
-                        <i class="fa-solid fa-pie-chart"></i> <span>Análise Detalhada</span>
-                    </button>
                 </nav>
+            </div>
+        </div>
+
+        <!-- Global Filters Bar -->
+        <div class="bg-slate-900 border-t border-slate-800 shadow-inner py-3">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end text-xs">
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Data Início</label>
+                        <input type="date" id="filterDataInicio" onchange="applyFilters()" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Data Fim</label>
+                        <input type="date" id="filterDataFim" onchange="applyFilters()" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Bloco / Local</label>
+                        <select id="filterBloco" onchange="applyFilters()" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <option value="">Todos os Blocos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Semana</label>
+                        <select id="filterSemana" onchange="applyFilters()" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <option value="">Todas as Semanas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-medium mb-1">Roçadeira</label>
+                        <select id="filterEquipamento" onchange="applyFilters()" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <option value="">Todas as Roçadeiras</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="clearFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold py-1.5 px-3 rounded-lg transition border border-slate-700 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
     <!-- Main Container -->
-    <main id="mainContainer" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 transition-all duration-300 bg-slate-50">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-        <!-- Global Filter Bar -->
-        <div id="filterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                <div class="flex items-center gap-2 text-slate-700 font-bold text-xs uppercase tracking-wider">
-                    <i class="fa-solid fa-filter text-agri-600"></i>
-                    <span>Filtros Globais Interativos</span>
-                </div>
-                <button onclick="resetFilters()" class="text-xs text-slate-500 hover:text-agri-700 font-medium flex items-center gap-1 transition">
-                    <i class="fa-solid fa-arrow-rotate-left"></i> Limpar Filtros
-                </button>
-            </div>
-
-            <!-- Filter Controls Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-                <!-- Date Start -->
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Data Inicial</label>
-                    <input type="date" id="filterDateStart" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 focus:ring-2 focus:ring-agri-500 focus:border-agri-500 h-9">
-                </div>
-
-                <!-- Date End -->
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Data Final</label>
-                    <input type="date" id="filterDateEnd" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 focus:ring-2 focus:ring-agri-500 focus:border-agri-500 h-9">
-                </div>
-
-                <!-- Multi-select Dropdown: Ano -->
-                <div class="relative filter-dropdown-container">
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Ano</label>
-                    <button type="button" onclick="toggleDropdown('menuAno')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
-                        <span id="labelAno" class="truncate font-medium">Todos os Anos</span>
-                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
-                    </button>
-                    <div id="menuAno" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
-                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
-                            <input type="checkbox" id="chkAnoAll" value="ALL" checked onchange="toggleSelectAll('chkAnoAll', 'optionsAno')">
-                            <span>Todos os Anos</span>
-                        </label>
-                        <div id="optionsAno" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
-                    </div>
-                </div>
-
-                <!-- Multi-select Dropdown: Semana -->
-                <div class="relative filter-dropdown-container">
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Semana</label>
-                    <button type="button" onclick="toggleDropdown('menuSemana')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
-                        <span id="labelSemana" class="truncate font-medium">Todas as Semanas</span>
-                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
-                    </button>
-                    <div id="menuSemana" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
-                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
-                            <input type="checkbox" id="chkSemanaAll" value="ALL" checked onchange="toggleSelectAll('chkSemanaAll', 'optionsSemana')">
-                            <span>Todas as Semanas</span>
-                        </label>
-                        <div id="optionsSemana" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
-                    </div>
-                </div>
-
-                <!-- Multi-select Dropdown: Setor -->
-                <div class="relative filter-dropdown-container">
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Setor</label>
-                    <button type="button" onclick="toggleDropdown('menuSetor')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
-                        <span id="labelSetor" class="truncate font-medium">Todos os Setores</span>
-                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
-                    </button>
-                    <div id="menuSetor" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
-                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
-                            <input type="checkbox" id="chkSetorAll" value="ALL" checked onchange="toggleSelectAll('chkSetorAll', 'optionsSetor')">
-                            <span>Todos os Setores</span>
-                        </label>
-                        <div id="optionsSetor" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
-                    </div>
-                </div>
-
-                <!-- Multi-select Dropdown: Produto -->
-                <div class="relative filter-dropdown-container">
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Produto</label>
-                    <button type="button" onclick="toggleDropdown('menuProduto')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
-                        <span id="labelProduto" class="truncate font-medium">Todos os Produtos</span>
-                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
-                    </button>
-                    <div id="menuProduto" class="filter-dropdown-menu hidden absolute top-full right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
-                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
-                            <input type="checkbox" id="chkProdutoAll" value="ALL" checked onchange="toggleSelectAll('chkProdutoAll', 'optionsProduto')">
-                            <span>Todos os Produtos</span>
-                        </label>
-                        <div id="optionsProduto" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
-                    </div>
-                </div>
-
-                <!-- Search Input -->
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Busca Geral</label>
-                    <div class="relative">
-                        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Aplicador, Meio..." class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 pl-8 focus:ring-2 focus:ring-agri-500 focus:border-agri-500 h-9">
-                        <i class="fa-solid fa-search absolute left-2.5 top-[11px] text-slate-400 text-xs"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 1: DADOS DIÁRIOS -->
-        <div id="tabContent-daily" class="tab-content active space-y-6">
-            
-            <!-- Cards Resumo / Geral KPIs -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- KPI 1 -->
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-agri-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total (kg) Aplicado</span>
-                            <div class="p-2 bg-agri-100 text-agri-700 rounded-xl"><i class="fa-solid fa-weight-hanging text-lg"></i></div>
+        <!-- TAB 1: DADOS GERAIS -->
+        <div id="tabContent-gerais" class="tab-content active space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- KPI 1: Tempo Total Segmentado (Manhã e Tarde) -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-8 -mt-8 z-0"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-stopwatch"></i></div>
+                            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Tempo Total de Uso</h3>
                         </div>
-                        <div class="mt-3">
-                            <span id="kpiTotalKg" class="text-2xl sm:text-3xl font-extrabold text-slate-800">0</span>
-                            <span class="text-xs text-slate-500 ml-1 font-medium">kg</span>
+                        <div class="flex flex-col">
+                            <span id="kpiTotalTempo" class="text-3xl font-black text-slate-800">0 h 0 min</span>
+                            <div class="flex items-center gap-3 mt-2">
+                                <span class="text-xs font-semibold bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md border border-amber-100 flex items-center gap-1">
+                                    <i class="fa-solid fa-sun"></i> Manhã: <span id="kpiTempoManha" class="font-bold">0 h 0 min</span>
+                                </span>
+                                <span class="text-xs font-semibold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md border border-indigo-100 flex items-center gap-1">
+                                    <i class="fa-solid fa-moon"></i> Tarde: <span id="kpiTempoTarde" class="font-bold">0 h 0 min</span>
+                                </span>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                            <i class="fa-solid fa-list-check text-agri-600"></i> <span id="kpiCountApps">0 registros</span>
-                        </p>
                     </div>
                 </div>
 
                 <!-- KPI 2 -->
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Média de Tempo</span>
-                            <div class="p-2 bg-blue-100 text-blue-700 rounded-xl"><i class="fa-regular fa-clock text-lg"></i></div>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-8 -mt-8 z-0"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-map-location-dot"></i></div>
+                            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Bloco com Mais Uso</h3>
                         </div>
-                        <div class="mt-3">
-                            <span id="kpiMediaTempo" class="text-2xl sm:text-3xl font-extrabold text-slate-800">00:00</span>
+                        <div class="flex flex-col">
+                            <span id="kpiTopBloco" class="text-2xl font-bold text-slate-800 truncate">Nenhum</span>
+                            <span id="kpiTopBlocoTempo" class="text-lg font-bold text-emerald-600 mt-1">0 h 0 min</span>
                         </div>
-                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                            <i class="fa-solid fa-stopwatch text-blue-500"></i> <span id="kpiTotalTempo">Total: 0h 0m</span>
-                        </p>
                     </div>
                 </div>
 
                 <!-- KPI 3 -->
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Média por Bloco/Setor</span>
-                            <div class="p-2 bg-amber-100 text-amber-700 rounded-xl"><i class="fa-solid fa-layer-group text-lg"></i></div>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-brand-50 rounded-bl-full -mr-8 -mt-8 z-0"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 bg-brand-100 text-brand-600 rounded-xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Roçadeira Mais Usada</h3>
                         </div>
-                        <div class="mt-3">
-                            <span id="kpiMediaBloco" class="text-2xl sm:text-3xl font-extrabold text-slate-800">0</span>
-                            <span class="text-xs text-slate-500 ml-1 font-medium">kg/setor</span>
+                        <div class="flex flex-col">
+                            <span id="kpiTopEquip" class="text-2xl font-bold text-slate-800 truncate">Nenhuma</span>
+                            <span id="kpiTopEquipTempo" class="text-lg font-bold text-brand-600 mt-1">0 h 0 min</span>
                         </div>
-                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                            <i class="fa-solid fa-chart-pie text-amber-500"></i> <span id="kpiSetorCount">0 setores</span>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- KPI 4 -->
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Produto Mais Aplicado</span>
-                            <div class="p-2 bg-purple-100 text-purple-700 rounded-xl"><i class="fa-solid fa-trophy text-lg"></i></div>
-                        </div>
-                        <div class="mt-3">
-                            <h3 id="kpiTopProdutoNome" class="text-lg font-bold text-slate-800 truncate">Nenhum</h3>
-                            <div class="text-xl font-extrabold text-purple-700 mt-0.5">
-                                <span id="kpiTopProdutoKg">0</span> <span class="text-xs text-slate-500 font-normal">kg</span>
-                            </div>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                            <i class="fa-solid fa-percent text-purple-500"></i> <span id="kpiTopProdutoPercent">0% do total</span>
-                        </p>
                     </div>
                 </div>
             </div>
 
-            <!-- Gráfico 1: Adubação Total por Mês -->
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
-                    <div>
-                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-chart-bar text-agri-600"></i>
-                            Adubação Total por Mês
-                        </h2>
-                        <p class="text-xs text-slate-500">Volume acumulado de kg aplicados em cada mês</p>
-                    </div>
-                    <span class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-md self-start sm:self-auto">Total Mensal (kg)</span>
+            <!-- Gráficos Dados Gerais -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4 border-b border-slate-100 pb-4">
+                        <i class="fa-solid fa-chart-column text-emerald-500"></i> Tempo por Bloco (Alfabética)
+                    </h2>
+                    <div class="relative h-80 w-full"><canvas id="chartBloco"></canvas></div>
                 </div>
-                <div class="relative h-72 w-full">
-                    <canvas id="chartAdubacaoTotalMes"></canvas>
-                </div>
-            </div>
-
-            <!-- Gráfico 2: Aplicação Média Diária por Mês -->
-            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
-                    <div>
-                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-calendar-day text-agri-600"></i>
-                            Aplicação Média Diária por Mês
-                        </h2>
-                        <p class="text-xs text-slate-500">Média de adubação diária segmentada por produto e média total diária acumulada</p>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                        <i class="fa-solid fa-chart-simple text-agri-500"></i> Barras Individuais por Produto + Média Total
-                    </div>
-                </div>
-                <div class="relative h-80 sm:h-96 w-full">
-                    <canvas id="chartAplicacaoMediaDiariaMes"></canvas>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4 border-b border-slate-100 pb-4">
+                        <i class="fa-solid fa-chart-bar text-brand-500"></i> Tempo por Roçadeira (Alfabética)
+                    </h2>
+                    <div class="relative h-80 w-full"><canvas id="chartEquipamento"></canvas></div>
                 </div>
             </div>
         </div>
 
         <!-- TAB 2: COMPARATIVO -->
-        <div id="tabContent-comparative" class="tab-content space-y-6">
-            <!-- Cards Comparativos -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden flex items-center gap-4">
-                    <div class="p-4 bg-teal-100 text-teal-700 rounded-2xl"><i class="fa-solid fa-calendar-week text-2xl"></i></div>
-                    <div>
-                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Semanas Ativas</span>
-                        <div class="mt-1 flex items-baseline gap-2">
-                            <span id="compKpiSemanas" class="text-3xl font-extrabold text-slate-800">0</span>
-                            <span class="text-sm text-slate-500 font-medium">semanas de aplicação</span>
-                        </div>
+        <div id="tabContent-comparativo" class="tab-content space-y-6">
+            <!-- Campos Gerais Comparativo -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-calendar-check"></i></div>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase">Mês com Maior Uso</h3>
                     </div>
+                    <span id="kpiCompTopMes" class="text-2xl font-bold text-slate-800">Nenhum</span>
+                    <p id="kpiCompTopMesTempo" class="text-sm font-semibold text-purple-600 mt-1">0 h 0 min</p>
                 </div>
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden flex items-center gap-4">
-                    <div class="p-4 bg-indigo-100 text-indigo-700 rounded-2xl"><i class="fa-solid fa-truck-droplet text-2xl"></i></div>
-                    <div class="w-full">
-                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Principal Meio de Aplicação</span>
-                        <div class="mt-1 flex justify-between items-end w-full">
-                            <span id="compKpiMeioNome" class="text-xl font-bold text-slate-800 truncate">Nenhum</span>
-                            <div class="text-right">
-                                <span id="compKpiMeioKg" class="text-xl font-extrabold text-indigo-700">0</span>
-                                <span class="text-xs text-slate-500">kg</span>
-                            </div>
-                        </div>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 bg-sky-100 text-sky-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-calculator"></i></div>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase">Média Mensal de Uso</h3>
                     </div>
+                    <span id="kpiCompMediaMes" class="text-2xl font-bold text-slate-800">0 h 0 min</span>
+                    <p class="text-xs text-slate-400 mt-1">Por mês trabalhado</p>
+                </div>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase">Média por Registro</h3>
+                    </div>
+                    <span id="kpiCompMediaRegistro" class="text-2xl font-bold text-slate-800">0 h 0 min</span>
+                    <p class="text-xs text-slate-400 mt-1">Duração média de cada turno</p>
                 </div>
             </div>
 
-            <!-- Vertical Stacked Charts for Comparativo -->
-            <div class="grid grid-cols-1 gap-6">
-                <!-- Gráfico 3: Total Aplicado por Semana -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <div class="pb-3 mb-4 border-b border-slate-100">
-                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-chart-line text-agri-600"></i> Total Aplicado por Semana
-                        </h3>
-                        <p class="text-xs text-slate-500">Volume acumulado em kg com base na coluna "Semana"</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Horas por Mês -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="border-b border-slate-100 pb-4 mb-4">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days text-purple-500"></i> Total de Horas por Mês
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">Evolução do tempo total de uso mensal</p>
                     </div>
-                    <div class="relative h-80 sm:h-96 w-full">
-                        <canvas id="chartTotalSemana"></canvas>
-                    </div>
+                    <div class="relative h-80 w-full"><canvas id="chartMes"></canvas></div>
                 </div>
 
-                <!-- Gráfico 4: Total por Meio de Aplicação -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <div class="pb-3 mb-4 border-b border-slate-100">
-                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-droplet text-agri-600"></i> Total por Meio da Aplicação
-                        </h3>
-                        <p class="text-xs text-slate-500">Distribuição total de adubação por tipo e método de aplicação</p>
+                <!-- NOVO: Horas por Roçadeira e Semana -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="border-b border-slate-100 pb-4 mb-4">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-brand-500"></i> Uso de Roçadeiras por Semana
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">Tempo total segmentado por roçadeira e demonstrado por semana</p>
                     </div>
-                    <div class="relative h-80 sm:h-96 w-full">
-                        <canvas id="chartTotalMeio"></canvas>
-                    </div>
+                    <div class="relative h-80 w-full"><canvas id="chartBlocoSemana"></canvas></div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 3: TABELA GERAL DE REGISTROS -->
-        <div id="tabContent-table" class="tab-content space-y-4">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-table text-agri-600"></i> Registros de Aplicação
-                        </h2>
-                        <p class="text-xs text-slate-500">Lista completa das aplicações sincronizadas da planilha oficial</p>
+        <!-- TAB 3: MANUSEIO -->
+        <div id="tabContent-manuseio" class="tab-content space-y-6">
+            <!-- Campos Gerais Manuseio -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 bg-sky-100 text-sky-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-user-gear"></i></div>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase">Operador Principal</h3>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="exportTableToCSV()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition flex items-center gap-2">
-                            <i class="fa-solid fa-file-csv"></i> Exportar CSV
-                        </button>
-                    </div>
+                    <span id="kpiManTopOp" class="text-2xl font-bold text-slate-800 truncate block">Nenhum</span>
+                    <p id="kpiManTopOpTempo" class="text-sm font-semibold text-sky-600 mt-1">0 h 0 min</p>
                 </div>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-sun"></i></div>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase">Total Período Manhã</h3>
+                    </div>
+                    <span id="kpiManTotalManha" class="text-2xl font-bold text-slate-800">0 h 0 min</span>
+                    <p id="kpiManPctManha" class="text-xs font-medium text-amber-600 mt-1">0% do total</p>
+                </div>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-moon"></i></div>
+                        <h3 class="text-xs font-bold text-slate-500 uppercase">Total Período Tarde</h3>
+                    </div>
+                    <span id="kpiManTotalTarde" class="text-2xl font-bold text-slate-800">0 h 0 min</span>
+                    <p id="kpiManPctTarde" class="text-xs font-medium text-indigo-600 mt-1">0% do total</p>
+                </div>
+            </div>
 
+            <!-- Operadores com mais uso -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                <div class="border-b border-slate-100 pb-4 mb-4">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-sky-500"></i> Ranking de Operadores
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Pessoas que mais utilizaram a roçadeira (Ordem Decrescente)</p>
+                </div>
+                <div class="relative h-[360px] w-full"><canvas id="chartOperador"></canvas></div>
+            </div>
+
+            <!-- Manhã vs Tarde (Em Barras) -->
+            <div class="grid grid-cols-1 gap-6">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="border-b border-slate-100 pb-4 mb-4">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-cloud-sun text-amber-500"></i> Manhã vs Tarde (Por Mês)
+                        </h2>
+                    </div>
+                    <div class="relative h-80 w-full"><canvas id="chartPeriodoMes"></canvas></div>
+                </div>
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
+                    <div class="border-b border-slate-100 pb-4 mb-4">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-week text-indigo-500"></i> Manhã vs Tarde (Por Semana)
+                        </h2>
+                    </div>
+                    <div class="relative h-80 w-full"><canvas id="chartPeriodoSemana"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: TABELA DE REGISTROS -->
+        <div id="tabContent-tabela" class="tab-content">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                <div class="p-5 border-b border-slate-100">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul text-slate-500"></i> Detalhamento de Registros
+                    </h2>
+                </div>
                 <div class="overflow-x-auto custom-scrollbar max-h-[600px]">
-                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
-                        <thead class="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider sticky top-0 z-10 shadow-sm text-xs">
                             <tr>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Data</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Semana</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Setor</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Produto</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap text-right">Kg</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Variedade</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Meio Aplicação</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Início</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Fim</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Colaboradores</th>
-                                <th class="p-3.5 border-b border-slate-200 whitespace-nowrap">Aplicador</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap">Data</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap">Período</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap">Local / Bloco</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap">Roçadeira</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap">Operador</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap">Início</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap">Fim</th>
+                                <th class="p-4 border-b border-slate-200 whitespace-nowrap text-right bg-blue-50/50">Duração</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                        <tbody id="tableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Injetado via JS -->
+                        </tbody>
                     </table>
                 </div>
-
-                <div class="p-4 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-                    <div>
-                        Exibindo <span id="tableShowingCount" class="font-bold text-slate-700">0</span> de <span id="tableTotalCount" class="font-bold text-slate-700">0</span> registros
-                    </div>
-                    <div id="tableTotalKgFooter" class="font-semibold text-agri-800 bg-agri-100 px-3 py-1 rounded-full">
-                        Total Filtrado: 0 kg
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: ANÁLISE DETALHADA -->
-        <div id="tabContent-analytics" class="tab-content space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Breakdown by Setor (%) -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h3 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-agri-600"></i> Distribuição por Setor (%)
-                    </h3>
-                    <p class="text-xs text-slate-500 mb-4">Percentual de adubação aplicada em cada setor/bloco</p>
-                    <div class="relative h-80"><canvas id="chartSetorBreakdown"></canvas></div>
-                </div>
-
-                <!-- Breakdown by Aplicador (%) -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h3 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-user-check text-agri-600"></i> Aplicações por Aplicador e Meio (%)
-                    </h3>
-                    <p class="text-xs text-slate-500 mb-4">Proporção percentual do meio de aplicação por colaborador</p>
-                    <div class="relative h-80"><canvas id="chartAplicadorBreakdown"></canvas></div>
+                <div class="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 font-medium">
+                    Exibindo <span id="tableTotalCount" class="font-bold text-slate-700">0</span> registros válidos.
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- Export Configuration Modal -->
-    <div id="exportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-file-export text-indigo-600"></i> Exportar Relatório Fotográfico
-                </h3>
-                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- Export Modal -->
+    <div id="exportModal" class="hidden fixed inset-0 z-[100] bg-slate-900/60 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-xl border border-slate-200 mx-4 flex flex-col max-h-[90vh]">
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Exportar Relatório Personalizado</h3>
+            <p class="text-sm text-slate-500 mb-4">Selecione quais indicadores e gráficos deseja incluir no documento.</p>
+            
+            <div class="overflow-y-auto custom-scrollbar pr-2 space-y-4 mb-6 flex-1">
+                <!-- Select KPIs -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <h4 class="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2"><i class="fa-solid fa-list-ol text-slate-400"></i> Campos Gerais (Indicadores)</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_kpi_gerais" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Gerais</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_kpi_comp" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Comparativo</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_kpi_man" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Manuseio</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Select Charts -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <h4 class="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2"><i class="fa-solid fa-chart-line text-slate-400"></i> Gráficos</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_chart_bloco" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Tempo por Bloco</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_chart_equip" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Tempo por Roçadeira</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_chart_mes" checked class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Horas por Mês</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_chart_equip_sem" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Roçadeiras por Sem.</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_chart_op" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Ranking de Operadores</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_chart_per_mes" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Manhã vs Tarde (Mês)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-2 border border-slate-200 bg-white rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                            <input type="checkbox" id="chk_chart_per_sem" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                            <span class="text-sm font-medium text-slate-700">Manhã vs Tarde (Sem.)</span>
+                        </label>
+                    </div>
+                </div>
             </div>
             
-            <div class="space-y-4">
-                <div>
-                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">1. Selecione as Seções</h4>
-                    <div class="space-y-2 text-xs sm:text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-white p-1.5 rounded-lg transition">
-                            <input type="checkbox" id="exp-daily" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" checked> 
-                            <span>Dados Diários (Campos e Gráficos Mensais)</span>
-                        </label>
-                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-white p-1.5 rounded-lg transition">
-                            <input type="checkbox" id="exp-comparative" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" checked> 
-                            <span>Comparativo (Semanas e Meio de Aplicação)</span>
-                        </label>
-                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-white p-1.5 rounded-lg transition">
-                            <input type="checkbox" id="exp-analytics" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" checked> 
-                            <span>Análise Detalhada (Por Setor e Aplicador)</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2. Formato de Saída</h4>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="flex items-center justify-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition">
-                            <input type="radio" name="exp-format" value="pdf" class="text-indigo-600 focus:ring-indigo-500" checked> 
-                            <span class="text-xs font-semibold text-slate-700"><i class="fa-solid fa-file-pdf text-red-500 mr-1"></i> Documento PDF</span>
-                        </label>
-                        <label class="flex items-center justify-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition">
-                            <input type="radio" name="exp-format" value="jpeg" class="text-indigo-600 focus:ring-indigo-500"> 
-                            <span class="text-xs font-semibold text-slate-700"><i class="fa-solid fa-image text-blue-500 mr-1"></i> Imagem JPEG</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
-                <button onclick="closeExportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">Cancelar</button>
-                <button onclick="executeExport()" id="btnConfirmExport" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow">
-                    <i class="fa-solid fa-download"></i> Gerar e Baixar
-                </button>
+            <div class="flex justify-end gap-3 mt-auto pt-4 border-t border-slate-100">
+                <button onclick="closeExportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition text-sm">Cancelar</button>
+                <button onclick="exportReport('jpeg')" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg transition shadow-sm text-sm flex items-center gap-2"><i class="fa-solid fa-image"></i> Baixar JPEG</button>
+                <button onclick="exportReport('pdf')" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg transition shadow-sm text-sm flex items-center gap-2"><i class="fa-solid fa-file-pdf"></i> Baixar PDF</button>
             </div>
         </div>
     </div>
 
-    <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTJfPIEW6e5KKB1AHQGEptWfx3ZgF8np8eRyn2tFxVIIS8COWQIk0SS3V5n75k6BJoqd0teSi8suhvJ/pub?output=csv';
-        let rawData = [];
-        let filteredData = [];
-        
-        // Chart instances
-        let chartAdubTotalMesInst = null;
-        let chartAplicMesInst = null;
-        let chartSemanaInst = null;
-        let chartMeioInst = null;
-        let chartSetorInst = null;
-        let chartAplicadorInst = null;
+    <!-- Hidden Export Template (Dynamic Layout) -->
+    <div id="exportCanvasContainer" class="fixed -left-[9999px] top-0 bg-slate-50 flex flex-col font-sans" style="width: 1600px; height: auto; min-height: 900px; z-index: -10;">
+        <div class="bg-slate-900 text-white p-6 flex items-center gap-4 border-b-4 border-brand-500" style="height: 100px;">
+            <img src="https://i.imgur.com/bEBkelG.png" class="w-14 h-14 object-contain">
+            <div>
+                <h1 class="text-3xl font-bold">Registro de Uso da Roçadeira</h1>
+                <p id="exportSubtitle" class="text-slate-300 text-sm mt-1 uppercase tracking-wider font-semibold">Relatório Personalizado</p>
+            </div>
+            <div class="ml-auto text-right text-slate-400 text-sm">
+                <p>Data de Geração: <span id="exportDateLabel" class="text-white font-medium"></span></p>
+            </div>
+        </div>
+        <div class="p-10 flex flex-col w-full h-auto gap-10">
+            <div id="exportKpis" class="flex flex-col gap-8"></div>
+            <!-- Gráficos em largura total: um por linha para preservar leitura e ocupar toda a margem -->
+            <div id="exportCharts" class="grid grid-cols-1 gap-10 w-full h-auto pb-10"></div>
+        </div>
+    </div>
 
-        const fallbackDataset = [
-            { Data: "05/01/2026", Semana: "1", Setor: "Setor A", Produto: "NPK 10-10-10", Kg: "150", Variedade: "Bourbon", "Meio da aplicação": "Via Solo", Inicio: "07:30", Fim: "09:30", Colaboradores: "2", Aplicador: "Carlos" },
-            { Data: "12/01/2026", Semana: "2", Setor: "Setor B", Produto: "Ureia", Kg: "220", Variedade: "Catuaí", "Meio da aplicação": "Fertirrigação", Inicio: "08:00", Fim: "11:00", Colaboradores: "1", Aplicador: "João" },
-            { Data: "18/02/2026", Semana: "7", Setor: "Setor A", Produto: "Ureia", Kg: "300", Variedade: "Bourbon", "Meio da aplicação": "Foliar", Inicio: "08:00", Fim: "10:30", Colaboradores: "2", Aplicador: "Carlos" }
-        ];
+    </div> <!-- Fechamento do MainApp Wrapper -->
+
+    <script>
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9q-T-U_fT_tP9_ZKet4ai-BG11a6eCnwyG_BrJWIG7rQ7gFbKkrjDnj_r3ptMs-BbCl-7nm5kkHcI/pub?output=csv';
+        
+        let allRawData = [];
+        let validData = [];
+        
+        // Instâncias de Gráficos
+        let chartBlocoInst = null;
+        let chartEquipInst = null;
+        let chartMesInst = null;
+        let chartBlocoSemanaInst = null;
+        let chartOperadorInst = null;
+        let chartPeriodoMesInst = null;
+        let chartPeriodoSemInst = null;
 
         Chart.register(ChartDataLabels);
 
-        window.onload = () => {
-            loadSpreadsheetData();
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('usernameInput').value;
+            const p = document.getElementById('passwordInput').value;
+            const err = document.getElementById('loginError');
             
-            // Close dropdowns when clicking outside
-            window.addEventListener('click', function(e) {
-                if (!e.target.closest('.filter-dropdown-container')) {
-                    document.querySelectorAll('.filter-dropdown-menu').forEach(el => el.classList.add('hidden'));
-                }
-            });
-        };
-
-        function setInnerText(id, text) {
-            const el = document.getElementById(id);
-            if (el) el.innerText = text;
+            if(u === 'adm123' && p === 'lucas@2026') {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('flex');
+                
+                // Dispara o download dos dados apenas após logar com sucesso
+                loadSpreadsheetData();
+            } else {
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 3000);
+            }
         }
 
         function loadSpreadsheetData() {
@@ -565,543 +556,480 @@
                 skipEmptyLines: true,
                 complete: function(results) {
                     if (results.data && results.data.length > 0) {
-                        rawData = cleanData(results.data);
+                        processRawData(results.data);
+                        populateFilterDropdowns();
+                        applyFilters();
                         updateStatusBadge('online');
-                        processAndRenderData(true);
                     } else {
-                        useFallback('Planilha sem registros.');
+                        updateStatusBadge('error', 'Planilha Vazia');
                     }
                 },
                 error: function(err) {
-                    console.warn("Erro ao buscar CSV. Usando contingência:", err);
-                    useFallback('Modo Local Offline');
+                    updateStatusBadge('error', 'Erro de Conexão');
                 }
             });
         }
 
-        function useFallback(message) {
-            rawData = cleanData(fallbackDataset);
-            updateStatusBadge('fallback', message);
-            processAndRenderData(true);
-        }
+        function processRawData(data) {
+            allRawData = [];
 
-        function updateStatusBadge(type, customText) {
-            const badge = document.getElementById('syncStatusBadge');
-            if (!badge) return;
-            if (type === 'syncing') {
-                badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800';
-                badge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Sincronizando...';
-            } else if (type === 'online') {
-                badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800';
-                badge.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Planilha Ao Vivo';
-            } else {
-                badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-700';
-                badge.innerHTML = `<i class="fa-solid fa-database mr-1"></i> ${customText || 'Modo Local'}`;
-            }
-        }
-
-        function cleanData(data) {
-            return data.map(item => {
+            data.forEach(item => {
                 const getVal = (keys) => {
                     for (let k of keys) {
                         for (let a in item) {
-                            if (a.trim().toLowerCase() === k.toLowerCase()) return item[a];
+                            if (a.trim().toLowerCase() === k.toLowerCase()) return item[a].trim();
                         }
                     }
                     return '';
                 };
 
                 const dataVal = getVal(['Data', 'data', 'DATE']);
-                const kgVal = getVal(['Kg', 'kg', 'KG', 'Quantidade']);
+                const operadorVal = getVal(['Operador', 'operador', 'Funcionario']);
+                const periodoVal = getVal(['Periodo', 'período', 'Turno']);
+                const localVal = getVal(['Local', 'local', 'Bloco', 'bloco', 'Setor']);
+                const equipVal = getVal(['Equipamento', 'equipamento', 'Roçadeira', 'rocadeira']);
                 const inicioVal = getVal(['Inicio', 'Início', 'inicio']);
-                const fimVal = getVal(['Fim', 'fim']);
+                const fimVal = getVal(['Fim', 'fim', 'Término']);
 
-                let parsedKg = 0;
-                if (kgVal) {
-                    parsedKg = parseFloat(String(kgVal).replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+                if (!localVal && !equipVal && !inicioVal && !fimVal) return;
+
+                const durationMinutes = calcDuration(inicioVal, fimVal);
+
+                // Processamento de Datas
+                let mesStr = 'Sem Data', semStr = 'Sem Data';
+                let mesCode = 0, semCode = 0;
+                let dateIso = '';
+                
+                if (dataVal) {
+                    const parts = dataVal.split('/');
+                    if (parts.length >= 3) {
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10);
+                        let yearStr = parts[2].split(' ')[0];
+                        const year = yearStr.length <= 2 ? 2000 + parseInt(yearStr) : parseInt(yearStr, 10);
+                        
+                        if(!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                            dateIso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            mesStr = `${String(month).padStart(2, '0')}/${year}`;
+                            mesCode = (year * 100) + month;
+
+                            // Cálculo da Semana ISO
+                            const d = new Date(year, month - 1, day);
+                            const tdt = new Date(d.valueOf());
+                            const dayn = (d.getDay() + 6) % 7;
+                            tdt.setDate(tdt.getDate() - dayn + 3);
+                            const firstThursday = tdt.valueOf();
+                            tdt.setMonth(0, 1);
+                            if (tdt.getDay() !== 4) {
+                                tdt.setMonth(0, 1 + ((4 - tdt.getDay()) + 7) % 7);
+                            }
+                            const weekNum = 1 + Math.ceil((firstThursday - tdt) / 604800000);
+                            
+                            semStr = `Sem ${String(weekNum).padStart(2, '0')}/${year}`;
+                            semCode = (year * 100) + weekNum;
+                        }
+                    }
                 }
 
-                const dateObj = parseDateString(dataVal);
-                const anoVal = dateObj ? dateObj.getFullYear() : 'Outros';
+                let periodCat = 'Outro';
+                const pLower = periodoVal.toLowerCase();
+                if (pLower.includes('manh') || pLower === 'm') periodCat = 'Manhã';
+                else if (pLower.includes('tard') || pLower === 't') periodCat = 'Tarde';
 
-                return {
-                    Data: dataVal || 'N/A',
-                    DateObj: dateObj,
-                    Ano: anoVal,
-                    MonthKey: dateObj ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}` : 'Outros',
-                    MonthLabel: dateObj ? dateObj.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : 'Outros',
-                    DayKey: dateObj ? dateObj.toISOString().split('T')[0] : 'Unknown',
-                    Semana: getVal(['Semana', 'semana']) || 'N/A',
-                    Setor: getVal(['Setor', 'setor', 'Bloco']) || 'N/A',
-                    Produto: getVal(['Produto', 'produto']) || 'N/A',
-                    Kg: parsedKg,
-                    Variedade: getVal(['Variedade', 'variedade']) || 'N/A',
-                    MeioAplicacao: getVal(['Meio da aplicação', 'meio da aplicação', 'Meio', 'Meio de aplicacao']) || 'N/A',
-                    Inicio: inicioVal || 'N/A',
-                    Fim: fimVal || 'N/A',
-                    Colaboradores: getVal(['Colaboradores', 'colaboradores']) || 'N/A',
-                    Aplicador: getVal(['Aplicador', 'aplicador']) || 'N/A',
-                    DurationMinutes: calcMinutes(inicioVal, fimVal)
-                };
-            }).filter(row => row.Kg > 0 || row.Setor !== 'N/A' || row.Produto !== 'N/A');
+                allRawData.push({
+                    Data: dataVal || '-',
+                    DateIso: dateIso,
+                    Operador: operadorVal || 'Não Informado',
+                    Periodo: periodoVal || '-',
+                    PeriodoCat: periodCat,
+                    Mes: mesStr, MesCode: mesCode,
+                    Semana: semStr, SemanaCode: semCode,
+                    Local: localVal || 'Não Informado',
+                    Equipamento: equipVal || 'Não Informado',
+                    Inicio: inicioVal || '-',
+                    Fim: fimVal || '-',
+                    DurationMinutes: durationMinutes
+                });
+            });
         }
 
-        function parseDateString(str) {
-            if (!str) return null;
-            const parts = str.split(/[\/\-]/);
-            if (parts.length === 3) {
-                if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]);
-                if (parts[2].length === 4) return new Date(parts[2], parts[1] - 1, parts[0]);
-            }
-            const d = new Date(str);
-            return isNaN(d.getTime()) ? null : d;
-        }
+        function populateFilterDropdowns() {
+            const blocos = new Set();
+            const semanas = new Set();
+            const equipamentos = new Set();
 
-        function calcMinutes(inicio, fim) {
-            if (!inicio || !fim || inicio === 'N/A' || fim === 'N/A') return 0;
-            try {
-                const p = (t) => { const [h, m] = t.split(':').map(Number); return (h || 0) * 60 + (m || 0); };
-                const diff = p(fim) - p(inicio);
-                return diff > 0 ? diff : 0;
-            } catch (e) { return 0; }
-        }
+            allRawData.forEach(r => {
+                if (r.Local && r.Local !== 'Não Informado') blocos.add(r.Local);
+                if (r.Semana && r.Semana !== 'Sem Data') semanas.add(r.Semana);
+                if (r.Equipamento && r.Equipamento !== 'Não Informado') equipamentos.add(r.Equipamento);
+            });
 
-        function toggleDropdown(id) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const isHidden = el.classList.contains('hidden');
-            document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.classList.add('hidden'));
-            if (isHidden) el.classList.remove('hidden');
-        }
+            const fillSelect = (id, items) => {
+                const s = document.getElementById(id);
+                if (!s) return;
+                const currentVal = s.value;
+                s.innerHTML = s.options[0].outerHTML; 
+                Array.from(items).sort().forEach(val => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    s.appendChild(opt);
+                });
+                s.value = currentVal;
+            };
 
-        function toggleSelectAll(allChkId, containerId) {
-            const allChk = document.getElementById(allChkId);
-            const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]`);
-            checkboxes.forEach(cb => cb.checked = allChk.checked);
-            applyFilters();
-        }
-
-        function processAndRenderData(rebuildFilters = false) {
-            if (rebuildFilters) buildFilterCheckboxMenus();
-            applyFilters();
-        }
-
-        function buildFilterCheckboxMenus() {
-            const anos = [...new Set(rawData.map(r => String(r.Ano)))].filter(v => v !== 'N/A' && v !== 'Outros').sort();
-            const semanas = [...new Set(rawData.map(r => String(r.Semana)))].filter(v => v !== 'N/A').sort((a,b) => parseInt(a)-parseInt(b));
-            const setores = [...new Set(rawData.map(r => r.Setor))].filter(v => v !== 'N/A').sort();
-            const produtos = [...new Set(rawData.map(r => r.Produto))].filter(v => v !== 'N/A').sort();
-
-            renderCheckboxList('optionsAno', anos, 'chkAno');
-            renderCheckboxList('optionsSemana', semanas, 'chkSemana', 'Semana ');
-            renderCheckboxList('optionsSetor', setores, 'chkSetor');
-            renderCheckboxList('optionsProduto', produtos, 'chkProduto');
-        }
-
-        function renderCheckboxList(containerId, items, prefix, labelPrefix = '') {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            container.innerHTML = items.map((item, idx) => `
-                <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer text-slate-700">
-                    <input type="checkbox" id="${prefix}_${idx}" value="${item}" checked onchange="updateFilterLabel('${containerId}')" class="rounded text-agri-600 focus:ring-agri-500">
-                    <span>${labelPrefix}${item}</span>
-                </label>
-            `).join('');
-        }
-
-        function getCheckedValues(containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return [];
-            const checked = container.querySelectorAll('input[type="checkbox"]:checked');
-            return Array.from(checked).map(c => c.value);
-        }
-
-        function updateFilterLabel(containerId) {
-            const checkedVals = getCheckedValues(containerId);
-            const totalCount = document.querySelectorAll(`#${containerId} input[type="checkbox"]`).length;
-            
-            let labelId = '';
-            let allChkId = '';
-            let defaultText = '';
-
-            if (containerId === 'optionsAno') { labelId = 'labelAno'; allChkId = 'chkAnoAll'; defaultText = 'Todos os Anos'; }
-            if (containerId === 'optionsSemana') { labelId = 'labelSemana'; allChkId = 'chkSemanaAll'; defaultText = 'Todas as Semanas'; }
-            if (containerId === 'optionsSetor') { labelId = 'labelSetor'; allChkId = 'chkSetorAll'; defaultText = 'Todos os Setores'; }
-            if (containerId === 'optionsProduto') { labelId = 'labelProduto'; allChkId = 'chkProdutoAll'; defaultText = 'Todos os Produtos'; }
-
-            const allChk = document.getElementById(allChkId);
-            if (allChk) {
-                allChk.checked = (checkedVals.length === totalCount);
-            }
-
-            const labelEl = document.getElementById(labelId);
-            if (labelEl) {
-                if (checkedVals.length === 0) {
-                    labelEl.innerText = 'Nenhum selecionado';
-                } else if (checkedVals.length === totalCount) {
-                    labelEl.innerText = defaultText;
-                } else {
-                    labelEl.innerText = `${checkedVals.length} selecionado(s)`;
-                }
-            }
-
-            applyFilters();
+            fillSelect('filterBloco', blocos);
+            fillSelect('filterSemana', semanas);
+            fillSelect('filterEquipamento', equipamentos);
         }
 
         function applyFilters() {
-            const dateStartEl = document.getElementById('filterDateStart');
-            const dateEndEl = document.getElementById('filterDateEnd');
-            const searchEl = document.getElementById('filterSearch');
+            const dInicio = document.getElementById('filterDataInicio')?.value;
+            const dFim = document.getElementById('filterDataFim')?.value;
+            const bloco = document.getElementById('filterBloco')?.value;
+            const semana = document.getElementById('filterSemana')?.value;
+            const equip = document.getElementById('filterEquipamento')?.value;
 
-            const startStr = dateStartEl ? dateStartEl.value : '';
-            const endStr = dateEndEl ? dateEndEl.value : '';
-            
-            const startDate = startStr ? new Date(startStr + 'T00:00:00') : null;
-            const endDate = endStr ? new Date(endStr + 'T23:59:59') : null;
-
-            const selAnos = getCheckedValues('optionsAno');
-            const selSemanas = getCheckedValues('optionsSemana');
-            const selSetores = getCheckedValues('optionsSetor');
-            const selProdutos = getCheckedValues('optionsProduto');
-
-            const search = searchEl ? searchEl.value.toLowerCase().trim() : '';
-
-            filteredData = rawData.filter(item => {
-                if (startDate && item.DateObj && item.DateObj < startDate) return false;
-                if (endDate && item.DateObj && item.DateObj > endDate) return false;
-                
-                if (selAnos.length > 0 && !selAnos.includes(String(item.Ano))) return false;
-                if (selSemanas.length > 0 && !selSemanas.includes(String(item.Semana))) return false;
-                if (selSetores.length > 0 && !selSetores.includes(String(item.Setor))) return false;
-                if (selProdutos.length > 0 && !selProdutos.includes(String(item.Produto))) return false;
-
-                if (search) {
-                    const str = `${item.Aplicador} ${item.Colaboradores} ${item.Variedade} ${item.MeioAplicacao} ${item.Setor} ${item.Produto}`.toLowerCase();
-                    if (!str.includes(search)) return false;
-                }
+            validData = allRawData.filter(r => {
+                if (dInicio && r.DateIso && r.DateIso < dInicio) return false;
+                if (dFim && r.DateIso && r.DateIso > dFim) return false;
+                if (bloco && r.Local !== bloco) return false;
+                if (semana && r.Semana !== semana) return false;
+                if (equip && r.Equipamento !== equip) return false;
                 return true;
             });
 
+            updateDashboard();
+        }
+
+        function clearFilters() {
+            if (document.getElementById('filterDataInicio')) document.getElementById('filterDataInicio').value = '';
+            if (document.getElementById('filterDataFim')) document.getElementById('filterDataFim').value = '';
+            if (document.getElementById('filterBloco')) document.getElementById('filterBloco').value = '';
+            if (document.getElementById('filterSemana')) document.getElementById('filterSemana').value = '';
+            if (document.getElementById('filterEquipamento')) document.getElementById('filterEquipamento').value = '';
+            applyFilters();
+        }
+
+        function calcDuration(inicio, fim) {
+            if (!inicio || !fim || inicio === '-' || fim === '-') return 0;
+            try {
+                const parseToMinutes = (timeStr) => {
+                    let [h, m] = timeStr.replace(/[^\d:]/g, '').split(':');
+                    return (parseInt(h || 0) * 60) + parseInt(m || 0);
+                };
+                const startMins = parseToMinutes(inicio);
+                let endMins = parseToMinutes(fim);
+                if (endMins < startMins) endMins += (24 * 60); 
+                const diff = endMins - startMins;
+                return diff > 0 && diff < (24*60) ? diff : 0;
+            } catch (e) { return 0; }
+        }
+
+        function formatDuration(totalMinutes) {
+            if (!totalMinutes || totalMinutes === 0) return '0 h 0 min';
+            const h = Math.floor(totalMinutes / 60);
+            const m = Math.round(totalMinutes % 60);
+            return `${h} h ${m} min`;
+        }
+
+        // Formatação Exata Solicitada: "145 h 10 min"
+        function formatHMM(totalMinutes) {
+            if (!totalMinutes || totalMinutes === 0) return '';
+            const h = Math.floor(totalMinutes / 60);
+            const m = Math.round(totalMinutes % 60);
+            return `${h} h ${m} min`;
+        }
+
+        function updateStatusBadge(type, customText = '') {
+            const b = document.getElementById('syncStatusBadge');
+            if (!b) return;
+            if (type === 'syncing') b.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Carregando...';
+            else if (type === 'online') b.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Conectado';
+            else if (type === 'error') b.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${customText}`;
+        }
+
+        function updateDashboard() {
             updateKPIs();
             renderCharts();
             renderTable();
         }
 
-        function resetFilters() {
-            if(document.getElementById('filterDateStart')) document.getElementById('filterDateStart').value = '';
-            if(document.getElementById('filterDateEnd')) document.getElementById('filterDateEnd').value = '';
-            if(document.getElementById('filterSearch')) document.getElementById('filterSearch').value = '';
-
-            ['chkAnoAll', 'chkSemanaAll', 'chkSetorAll', 'chkProdutoAll'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) { el.checked = true; }
-            });
-
-            ['optionsAno', 'optionsSemana', 'optionsSetor', 'optionsProduto'].forEach(cId => {
-                document.querySelectorAll(`#${cId} input[type="checkbox"]`).forEach(cb => cb.checked = true);
-                updateFilterLabel(cId);
-            });
-
-            applyFilters();
-        }
-
         function updateKPIs() {
-            // TAB 1 KPIs
-            const totalKg = filteredData.reduce((acc, r) => acc + r.Kg, 0);
-            setInnerText('kpiTotalKg', totalKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
-            setInnerText('kpiCountApps', `${filteredData.length} registros filtrados`);
+            let totalMins = 0;
+            let totalManhaMins = 0;
+            let totalTardeMins = 0;
+            const blocosMap = {}, equipMap = {}, mesMap = {}, opMap = {};
 
-            const validDurations = filteredData.filter(r => r.DurationMinutes > 0);
-            const totalMinutes = validDurations.reduce((acc, r) => acc + r.DurationMinutes, 0);
-            const avgMinutes = validDurations.length > 0 ? Math.round(totalMinutes / validDurations.length) : 0;
-            const hours = Math.floor(avgMinutes / 60);
-            const mins = avgMinutes % 60;
-            setInnerText('kpiMediaTempo', hours > 0 ? `${hours}h ${mins}m` : `${mins} min`);
-            setInnerText('kpiTotalTempo', `Total acumulado: ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`);
+            validData.forEach(row => {
+                const m = row.DurationMinutes;
+                totalMins += m;
+                if (m > 0) {
+                    blocosMap[row.Local] = (blocosMap[row.Local] || 0) + m;
+                    equipMap[row.Equipamento] = (equipMap[row.Equipamento] || 0) + m;
+                    if (row.MesCode) mesMap[row.Mes] = (mesMap[row.Mes] || 0) + m;
+                    if (row.Operador !== 'Não Informado') opMap[row.Operador] = (opMap[row.Operador] || 0) + m;
 
-            const activeSetores = [...new Set(filteredData.map(r => r.Setor))].filter(s => s !== 'N/A');
-            setInnerText('kpiMediaBloco', activeSetores.length > 0 ? Math.round(totalKg / activeSetores.length).toLocaleString('pt-BR') : '0');
-            setInnerText('kpiSetorCount', `${activeSetores.length} setores ativos`);
-
-            const prodTotals = {};
-            filteredData.forEach(r => {
-                if (r.Produto && r.Produto !== 'N/A') prodTotals[r.Produto] = (prodTotals[r.Produto] || 0) + r.Kg;
+                    if (row.PeriodoCat === 'Manhã') totalManhaMins += m;
+                    else if (row.PeriodoCat === 'Tarde') totalTardeMins += m;
+                }
             });
 
-            let topProd = 'Nenhum', maxKg = 0;
-            for (let p in prodTotals) { if (prodTotals[p] > maxKg) { maxKg = prodTotals[p]; topProd = p; } }
+            // --- TAB 1 KPIs (Gerais) ---
+            document.getElementById('kpiTotalTempo').innerText = formatDuration(totalMins);
+            document.getElementById('kpiTempoManha').innerText = formatDuration(totalManhaMins);
+            if(document.getElementById('kpiTempoTarde')) document.getElementById('kpiTempoTarde').innerText = formatDuration(totalTardeMins);
+
+            let topB = 'Nenhum', maxB = 0;
+            for (let b in blocosMap) if (blocosMap[b] > maxB) { maxB = blocosMap[b]; topB = b; }
+            document.getElementById('kpiTopBloco').innerText = topB;
+            document.getElementById('kpiTopBlocoTempo').innerText = formatDuration(maxB);
+
+            let topE = 'Nenhuma', maxE = 0;
+            for (let e in equipMap) if (equipMap[e] > maxE) { maxE = equipMap[e]; topE = e; }
+            document.getElementById('kpiTopEquip').innerText = topE;
+            document.getElementById('kpiTopEquipTempo').innerText = formatDuration(maxE);
+
+            // --- TAB 2 KPIs (Comparativo) ---
+            let topMes = 'Nenhum', maxMes = 0;
+            let countMeses = Object.keys(mesMap).length;
+            for (let m in mesMap) if (mesMap[m] > maxMes) { maxMes = mesMap[m]; topMes = m; }
+            document.getElementById('kpiCompTopMes').innerText = topMes;
+            document.getElementById('kpiCompTopMesTempo').innerText = formatDuration(maxMes);
             
-            setInnerText('kpiTopProdutoNome', topProd);
-            const titleEl = document.getElementById('kpiTopProdutoNome');
-            if(titleEl) titleEl.title = topProd;
+            let avgMesMins = countMeses > 0 ? Math.round(totalMins / countMeses) : 0;
+            document.getElementById('kpiCompMediaMes').innerText = formatDuration(avgMesMins);
 
-            setInnerText('kpiTopProdutoKg', maxKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
-            setInnerText('kpiTopProdutoPercent', totalKg > 0 ? `${((maxKg / totalKg) * 100).toFixed(1)}% do total` : '0% do total');
+            let validRowsCount = validData.filter(r => r.DurationMinutes > 0).length;
+            let avgRegMins = validRowsCount > 0 ? Math.round(totalMins / validRowsCount) : 0;
+            document.getElementById('kpiCompMediaRegistro').innerText = formatDuration(avgRegMins);
 
-            // TAB 2 KPIs
-            const uniqueWeeks = new Set(filteredData.map(r => r.Semana).filter(s => s !== 'N/A'));
-            setInnerText('compKpiSemanas', uniqueWeeks.size.toString());
+            // --- TAB 3 KPIs (Manuseio) ---
+            let topOp = 'Nenhum', maxOp = 0;
+            for (let o in opMap) if (opMap[o] > maxOp) { maxOp = opMap[o]; topOp = o; }
+            document.getElementById('kpiManTopOp').innerText = topOp;
+            document.getElementById('kpiManTopOpTempo').innerText = formatDuration(maxOp);
 
-            const meioTotals = {};
-            filteredData.forEach(r => {
-                if (r.MeioAplicacao && r.MeioAplicacao !== 'N/A') meioTotals[r.MeioAplicacao] = (meioTotals[r.MeioAplicacao] || 0) + r.Kg;
-            });
+            document.getElementById('kpiManTotalManha').innerText = formatDuration(totalManhaMins);
+            document.getElementById('kpiManTotalTarde').innerText = formatDuration(totalTardeMins);
 
-            let topMeio = 'Nenhum', maxMeioKg = 0;
-            for (let m in meioTotals) { if (meioTotals[m] > maxMeioKg) { maxMeioKg = meioTotals[m]; topMeio = m; } }
-            
-            setInnerText('compKpiMeioNome', topMeio);
-            setInnerText('compKpiMeioKg', maxMeioKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
+            let pctM = totalMins > 0 ? Math.round((totalManhaMins / totalMins) * 100) : 0;
+            let pctT = totalMins > 0 ? Math.round((totalTardeMins / totalMins) * 100) : 0;
+            document.getElementById('kpiManPctManha').innerText = `${pctM}% do total`;
+            document.getElementById('kpiManPctTarde').innerText = `${pctT}% do total`;
         }
 
         function renderCharts() {
-            const monthlyData = {};
-            filteredData.forEach(r => {
-                const k = r.MonthKey;
-                if (!monthlyData[k]) monthlyData[k] = { label: r.MonthLabel, totalKg: 0, uniqueDays: new Set(), products: {} };
-                monthlyData[k].totalKg += r.Kg;
-                if (r.DayKey && r.DayKey !== 'Unknown') monthlyData[k].uniqueDays.add(r.DayKey);
-                const p = r.Produto;
-                monthlyData[k].products[p] = (monthlyData[k].products[p] || 0) + r.Kg;
-            });
-
-            const sortedMonths = Object.keys(monthlyData).sort();
-            const monthLabels = sortedMonths.map(k => monthlyData[k].label);
-            
-            // 1. Total Adubação por Mês
-            const totalMensal = sortedMonths.map(k => parseFloat(monthlyData[k].totalKg.toFixed(1)));
-            renderAdubacaoTotalChart(monthLabels, totalMensal);
-
-            // 2. Aplicação Média Diária por Mês
-            const allProducts = [...new Set(filteredData.map(r => r.Produto))].filter(Boolean);
-            const colors = ['#16a34a', '#2563eb', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#4f46e5'];
-            
-            const productDatasets = allProducts.map((pName, idx) => {
-                return {
-                    label: pName,
-                    data: sortedMonths.map(m => {
-                        const days = monthlyData[m].uniqueDays.size || 1;
-                        return parseFloat(((monthlyData[m].products[pName] || 0) / days).toFixed(1));
-                    }),
-                    backgroundColor: colors[idx % colors.length],
-                    borderRadius: 4
-                };
-            });
-            
-            const monthlyAvgTotal = sortedMonths.map(m => {
-                const days = monthlyData[m].uniqueDays.size || 1;
-                return parseFloat((monthlyData[m].totalKg / days).toFixed(1));
-            });
-            
-            productDatasets.push({
-                label: 'Média Diária (TOTAL)',
-                data: monthlyAvgTotal,
-                backgroundColor: '#334155',
-                borderRadius: 4
-            });
-            
-            renderAplicacaoDiariaChart(monthLabels, productDatasets);
-
-            // 3 & 4. Comparativo
-            const weeksData = {}, meioData = {};
-            filteredData.forEach(r => {
-                if (r.Semana !== 'N/A') weeksData[r.Semana] = (weeksData[r.Semana] || 0) + r.Kg;
-                if (r.MeioAplicacao !== 'N/A') meioData[r.MeioAplicacao] = (meioData[r.MeioAplicacao] || 0) + r.Kg;
-            });
-
-            renderSemanaChart(weeksData);
-            renderMeioChart(meioData);
-            
-            // 5 & 6. Analytics
-            renderSetorChart();
-            renderAplicadorChart();
-        }
-
-        function renderAdubacaoTotalChart(labels, data) {
-            const ctx = document.getElementById('chartAdubacaoTotalMes');
-            if(!ctx) return;
-            if (chartAdubTotalMesInst) chartAdubTotalMesInst.destroy();
-            chartAdubTotalMesInst = new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: { labels: labels, datasets: [{ label: 'Total (kg)', data: data, backgroundColor: '#16a34a', borderRadius: 8 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'top', formatter: v => v > 0 ? `${v.toLocaleString('pt-BR')} kg` : '', font: { weight: 'bold', size: 11 }, color: '#1e293b' }
+            const chartDefaults = {
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: (ctx) => ` ${formatHMM(Math.round(ctx.raw * 60))}` }
                     },
-                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Total (kg)' } }, x: { grid: { display: false } } }
+                    datalabels: {
+                        anchor: 'end', 
+                        align: 'top', 
+                        color: '#475569', 
+                        font: { weight: 'bold', size: 10 },
+                        clip: false,
+                        formatter: (val) => val === 0 ? '' : formatHMM(Math.round(val * 60))
+                    }
+                },
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grace: '15%',
+                        title: { display: true, text: 'Horas' }, 
+                        grid: { color: '#f1f5f9' } 
+                    },
+                    x: { grid: { display: false } }
+                }
+            };
+
+            const blocosData = {}, equipData = {};
+            const mesData = {};
+            const opData = {};
+            const periodoMesData = {};
+            const periodoSemData = {};
+            const equipSemanaData = {}; // Para o novo gráfico de Roçadeiras agrupadas por semana
+            const allEquipsChart = new Set();
+
+            validData.forEach(r => {
+                if (r.DurationMinutes > 0) {
+                    blocosData[r.Local] = (blocosData[r.Local] || 0) + r.DurationMinutes;
+                    equipData[r.Equipamento] = (equipData[r.Equipamento] || 0) + r.DurationMinutes;
+                    
+                    if (r.MesCode) {
+                        if(!mesData[r.MesCode]) mesData[r.MesCode] = { label: r.Mes, total: 0 };
+                        mesData[r.MesCode].total += r.DurationMinutes;
+
+                        if(!periodoMesData[r.MesCode]) periodoMesData[r.MesCode] = { label: r.Mes, manha: 0, tarde: 0 };
+                        if(r.PeriodoCat === 'Manhã') periodoMesData[r.MesCode].manha += r.DurationMinutes;
+                        else if(r.PeriodoCat === 'Tarde') periodoMesData[r.MesCode].tarde += r.DurationMinutes;
+                    }
+
+                    if (r.SemanaCode) {
+                        if(!periodoSemData[r.SemanaCode]) periodoSemData[r.SemanaCode] = { label: r.Semana, manha: 0, tarde: 0 };
+                        if(r.PeriodoCat === 'Manhã') periodoSemData[r.SemanaCode].manha += r.DurationMinutes;
+                        else if(r.PeriodoCat === 'Tarde') periodoSemData[r.SemanaCode].tarde += r.DurationMinutes;
+                        
+                        // Populando dados para o novo Gráfico de Roçadeiras vs Semana
+                        if(!equipSemanaData[r.SemanaCode]) equipSemanaData[r.SemanaCode] = { label: r.Semana, equips: {} };
+                        equipSemanaData[r.SemanaCode].equips[r.Equipamento] = (equipSemanaData[r.SemanaCode].equips[r.Equipamento] || 0) + r.DurationMinutes;
+                        allEquipsChart.add(r.Equipamento);
+                    }
+
+                    if(r.Operador !== 'Não Informado') opData[r.Operador] = (opData[r.Operador] || 0) + r.DurationMinutes;
                 }
             });
-        }
 
-        function renderAplicacaoDiariaChart(labels, datasets) {
-            const ctx = document.getElementById('chartAplicacaoMediaDiariaMes');
-            if(!ctx) return;
-            if (chartAplicMesInst) chartAplicMesInst.destroy();
-            
-            chartAplicMesInst = new Chart(ctx.getContext('2d'), {
+            // 1. DADOS GERAIS: Tempo por Bloco
+            const bKeys = Object.keys(blocosData).sort();
+            if(chartBlocoInst) chartBlocoInst.destroy();
+            chartBlocoInst = new Chart(document.getElementById('chartBloco'), {
                 type: 'bar',
-                data: { labels: labels, datasets: datasets },
+                data: {
+                    labels: bKeys,
+                    datasets: [{
+                        data: bKeys.map(k => parseFloat((blocosData[k]/60).toFixed(2))),
+                        backgroundColor: '#10b981', borderRadius: 6
+                    }]
+                },
+                options: chartDefaults
+            });
+
+            // 2. DADOS GERAIS: Tempo por Equipamento
+            const eKeys = Object.keys(equipData).sort();
+            if(chartEquipInst) chartEquipInst.destroy();
+            chartEquipInst = new Chart(document.getElementById('chartEquipamento'), {
+                type: 'bar',
+                data: {
+                    labels: eKeys,
+                    datasets: [{
+                        data: eKeys.map(k => parseFloat((equipData[k]/60).toFixed(2))),
+                        backgroundColor: '#f97316', borderRadius: 6
+                    }]
+                },
+                options: chartDefaults
+            });
+
+            // 3. COMPARATIVO: Tempo por Mês
+            const mesKeys = Object.keys(mesData).sort((a,b) => a - b);
+            if(chartMesInst) chartMesInst.destroy();
+            chartMesInst = new Chart(document.getElementById('chartMes'), {
+                type: 'bar',
+                data: {
+                    labels: mesKeys.map(k => mesData[k].label),
+                    datasets: [{
+                        data: mesKeys.map(k => parseFloat((mesData[k].total/60).toFixed(2))),
+                        backgroundColor: '#a855f7', borderRadius: 6
+                    }]
+                },
+                options: chartDefaults
+            });
+
+            // 4. COMPARATIVO: NOVO Gráfico - Uso de Roçadeiras por Semana (Stacked)
+            const esKeys = Object.keys(equipSemanaData).sort((a,b) => a - b);
+            const labelsES = esKeys.map(k => equipSemanaData[k].label);
+            const equipsArray = Array.from(allEquipsChart).sort();
+            const colorsList = ['#f87171', '#fb923c', '#facc15', '#a3e635', '#34d399', '#2dd4bf', '#38bdf8', '#818cf8', '#a78bfa', '#e879f9'];
+
+            const datasetsES = equipsArray.map((eName, idx) => ({
+                label: eName,
+                data: esKeys.map(k => parseFloat(((equipSemanaData[k].equips[eName]||0)/60).toFixed(2))),
+                backgroundColor: colorsList[idx % colorsList.length],
+                borderRadius: 4
+            }));
+
+            if(chartBlocoSemanaInst) chartBlocoSemanaInst.destroy();
+            chartBlocoSemanaInst = new Chart(document.getElementById('chartBlocoSemana'), {
+                type: 'bar',
+                data: { labels: labelsES, datasets: datasetsES },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    ...chartDefaults,
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } },
-                        tooltip: { mode: 'index', intersect: false },
+                        ...chartDefaults.plugins,
+                        legend: { display: true, position: 'top', labels: { boxWidth: 12 } },
                         datalabels: {
-                            anchor: 'end', align: 'top',
-                            formatter: (val) => val > 0 ? val.toLocaleString('pt-BR') : '',
-                            font: { weight: 'bold', size: 10 }, color: '#475569',
-                            display: function(context) { return context.dataset.data[context.dataIndex] > 0; }
+                            color: '#ffffff',
+                            font: { weight: 'bold', size: 9 },
+                            anchor: 'center', align: 'center',
+                            formatter: (val) => val === 0 ? '' : formatHMM(Math.round(val * 60)),
+                            display: function(context) { return context.dataset.data[context.dataIndex] > 0.5; } 
                         }
                     },
-                    scales: { 
-                        x: { grid: { display: false } }, 
-                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Média Diária (kg/dia)' } } 
-                    }
-                }
-            });
-        }
-
-        function renderSemanaChart(dataObj) {
-            const ctx = document.getElementById('chartTotalSemana');
-            if(!ctx) return;
-            if (chartSemanaInst) chartSemanaInst.destroy();
-
-            const sortedKeys = Object.keys(dataObj).sort((a,b) => parseInt(a) - parseInt(b));
-            const labels = sortedKeys.map(k => `Semana ${k}`);
-            const data = sortedKeys.map(k => dataObj[k]);
-
-            chartSemanaInst = new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: { 
-                    labels: labels, 
-                    datasets: [{ 
-                        label: 'Total (kg)', 
-                        data: data, 
-                        borderColor: '#0284c7',
-                        backgroundColor: 'rgba(2, 132, 199, 0.12)',
-                        fill: true,
-                        tension: 0.3,
-                        borderWidth: 3,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: '#0284c7',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2
-                    }] 
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'top', font: { size: 11, weight: 'bold' }, formatter: v => `${v.toLocaleString('pt-BR')} kg` }
-                    },
-                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
-                }
-            });
-        }
-
-        function renderMeioChart(dataObj) {
-            const ctx = document.getElementById('chartTotalMeio');
-            if(!ctx) return;
-            if (chartMeioInst) chartMeioInst.destroy();
-            const labels = Object.keys(dataObj);
-            const data = Object.values(dataObj);
-            chartMeioInst = new Chart(ctx.getContext('2d'), {
-                type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: data, backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6'] }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
-                        datalabels: { color: '#fff', font: { weight: 'bold', size: 12 }, formatter: (val, ctx) => {
-                            const sum = ctx.dataset.data.reduce((a,b) => a+b,0);
-                            return sum > 0 ? ((val*100)/sum).toFixed(1) + '%' : '';
-                        }}
-                    }
-                }
-            });
-        }
-
-        function renderSetorChart() {
-            const ctx = document.getElementById('chartSetorBreakdown');
-            if(!ctx) return;
-            if (chartSetorInst) chartSetorInst.destroy();
-            const t = {}; filteredData.forEach(r => { if(r.Setor) t[r.Setor] = (t[r.Setor]||0) + r.Kg; });
-            chartSetorInst = new Chart(ctx.getContext('2d'), {
-                type: 'pie',
-                data: { labels: Object.keys(t), datasets: [{ data: Object.values(t), backgroundColor: ['#16a34a', '#2563eb', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#4f46e5', '#84cc16', '#06b6d4', '#eab308'] }] },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { 
-                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }, 
-                        datalabels: { 
-                            display: true, color: '#fff', font: { weight: 'bold', size: 11 },
-                            formatter: (val, ctx) => {
-                                const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
-                                return sum > 0 && val > 0 ? ((val/sum)*100).toFixed(1) + '%' : '';
-                            }
-                        } 
-                    } 
-                }
-            });
-        }
-
-        function renderAplicadorChart() {
-            const ctx = document.getElementById('chartAplicadorBreakdown');
-            if(!ctx) return;
-            if (chartAplicadorInst) chartAplicadorInst.destroy();
-            
-            const aplicadoresSet = new Set();
-            const meiosSet = new Set();
-            
-            filteredData.forEach(r => {
-                aplicadoresSet.add(r.Aplicador || 'Não Info');
-                meiosSet.add(r.MeioAplicacao || 'Não Info');
-            });
-            
-            const aplicadores = [...aplicadoresSet].sort();
-            const meios = [...meiosSet].sort();
-            const colors = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
-            
-            const datasets = meios.map((meio, idx) => {
-                return {
-                    label: meio,
-                    data: aplicadores.map(apl => {
-                        return filteredData
-                            .filter(r => (r.Aplicador || 'Não Info') === apl && (r.MeioAplicacao || 'Não Info') === meio)
-                            .reduce((sum, r) => sum + r.Kg, 0);
-                    }),
-                    backgroundColor: colors[idx % colors.length],
-                    borderRadius: 4
-                };
-            });
-
-            chartAplicadorInst = new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: { labels: aplicadores, datasets: datasets },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, indexAxis: 'y', 
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } }, 
-                        datalabels: { 
-                            anchor: 'center', align: 'center', color: '#fff', font: { size: 10, weight: 'bold' },
-                            formatter: (val, ctx) => {
-                                if (val === 0) return '';
-                                let totalApl = 0;
-                                ctx.chart.data.datasets.forEach(ds => {
-                                    totalApl += ds.data[ctx.dataIndex];
-                                });
-                                return totalApl > 0 ? ((val / totalApl) * 100).toFixed(1) + '%' : '';
-                            }
-                        } 
-                    },
                     scales: {
-                        x: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Kg Aplicado' } },
-                        y: { stacked: true, grid: { display: false } }
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Horas' } }
                     }
                 }
+            });
+
+            // 5. MANUSEIO: Operador (Decrescente)
+            const opKeys = Object.keys(opData).sort((a,b) => opData[b] - opData[a]);
+            if(chartOperadorInst) chartOperadorInst.destroy();
+            chartOperadorInst = new Chart(document.getElementById('chartOperador'), {
+                type: 'bar',
+                data: {
+                    labels: opKeys,
+                    datasets: [{
+                        data: opKeys.map(k => parseFloat((opData[k]/60).toFixed(2))),
+                        backgroundColor: '#38bdf8', borderRadius: 6
+                    }]
+                },
+                options: chartDefaults
+            });
+
+            // Config para Gráficos de Período em Barras
+            const periodBarOptions = JSON.parse(JSON.stringify(chartDefaults));
+            periodBarOptions.plugins.legend = { display: true, position: 'top' };
+            periodBarOptions.plugins.datalabels.formatter = (val) => val === 0 ? '' : formatHMM(Math.round(val * 60)); // Aplicando formatação 145 h 10 min
+
+            // 6. MANUSEIO: Manhã vs Tarde (Por Mês) - BARRAS
+            const pmKeys = Object.keys(periodoMesData).sort((a,b) => a - b);
+            if(chartPeriodoMesInst) chartPeriodoMesInst.destroy();
+            chartPeriodoMesInst = new Chart(document.getElementById('chartPeriodoMes'), {
+                type: 'bar',
+                data: {
+                    labels: pmKeys.map(k => periodoMesData[k].label),
+                    datasets: [
+                        {
+                            label: 'Manhã',
+                            data: pmKeys.map(k => parseFloat((periodoMesData[k].manha/60).toFixed(2))),
+                            backgroundColor: '#fbbf24', borderRadius: 4
+                        },
+                        {
+                            label: 'Tarde',
+                            data: pmKeys.map(k => parseFloat((periodoMesData[k].tarde/60).toFixed(2))),
+                            backgroundColor: '#6366f1', borderRadius: 4
+                        }
+                    ]
+                },
+                options: periodBarOptions
+            });
+
+            // 7. MANUSEIO: Manhã vs Tarde (Por Semana) - BARRAS
+            const psKeys = Object.keys(periodoSemData).sort((a,b) => a - b);
+            if(chartPeriodoSemInst) chartPeriodoSemInst.destroy();
+            chartPeriodoSemInst = new Chart(document.getElementById('chartPeriodoSemana'), {
+                type: 'bar',
+                data: {
+                    labels: psKeys.map(k => periodoSemData[k].label),
+                    datasets: [
+                        {
+                            label: 'Manhã',
+                            data: psKeys.map(k => parseFloat((periodoSemData[k].manha/60).toFixed(2))),
+                            backgroundColor: '#fbbf24', borderRadius: 4
+                        },
+                        {
+                            label: 'Tarde',
+                            data: psKeys.map(k => parseFloat((periodoSemData[k].tarde/60).toFixed(2))),
+                            backgroundColor: '#6366f1', borderRadius: 4
+                        }
+                    ]
+                },
+                options: periodBarOptions
             });
         }
 
@@ -1109,62 +1037,56 @@
             const tbody = document.getElementById('tableBody');
             if(!tbody) return;
             tbody.innerHTML = '';
-            filteredData.forEach((row, idx) => {
+            
+            validData.forEach((row, idx) => {
                 const tr = document.createElement('tr');
-                tr.className = idx % 2 === 0 ? 'bg-white hover:bg-slate-50 transition' : 'bg-slate-50/50 hover:bg-slate-100/60 transition';
+                tr.className = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
+                const dText = row.DurationMinutes > 0 ? formatDuration(row.DurationMinutes) : '-';
+                
                 tr.innerHTML = `
-                    <td class="p-3.5 whitespace-nowrap font-medium text-slate-800">${row.Data}</td>
-                    <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-medium">Sem ${row.Semana}</span></td>
-                    <td class="p-3.5 whitespace-nowrap"><span class="font-semibold text-agri-800">${row.Setor}</span></td>
-                    <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-1 bg-agri-50 text-agri-700 font-medium rounded-lg border border-agri-100">${row.Produto}</span></td>
-                    <td class="p-3.5 whitespace-nowrap font-bold text-slate-800 text-right">${row.Kg.toLocaleString('pt-BR')} kg</td>
-                    <td class="p-3.5 whitespace-nowrap text-slate-600">${row.Variedade}</td>
-                    <td class="p-3.5 whitespace-nowrap text-slate-600">${row.MeioAplicacao}</td>
-                    <td class="p-3.5 whitespace-nowrap text-slate-500">${row.Inicio}</td>
-                    <td class="p-3.5 whitespace-nowrap text-slate-500">${row.Fim}</td>
-                    <td class="p-3.5 whitespace-nowrap text-slate-600">${row.Colaboradores}</td>
-                    <td class="p-3.5 whitespace-nowrap"><span class="font-medium text-slate-700"><i class="fa-solid fa-user-circle text-slate-400 mr-1"></i>${row.Aplicador}</span></td>
+                    <td class="p-4 font-medium text-slate-800">${row.Data}</td>
+                    <td class="p-4 text-slate-600">${row.PeriodoCat} (${row.Periodo})</td>
+                    <td class="p-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-semibold rounded-md">${row.Local}</span></td>
+                    <td class="p-4"><span class="px-2.5 py-1 bg-brand-50 text-brand-700 font-semibold rounded-md">${row.Equipamento}</span></td>
+                    <td class="p-4 text-slate-600">${row.Operador}</td>
+                    <td class="p-4 text-slate-500">${row.Inicio}</td>
+                    <td class="p-4 text-slate-500">${row.Fim}</td>
+                    <td class="p-4 text-right font-bold text-blue-600">${dText}</td>
                 `;
                 tbody.appendChild(tr);
             });
-            const tF = filteredData.reduce((a, b) => a + b.Kg, 0);
-            setInnerText('tableShowingCount', filteredData.length.toString());
-            setInnerText('tableTotalCount', rawData.length.toString());
-            setInnerText('tableTotalKgFooter', `Total Filtrado: ${tF.toLocaleString('pt-BR')} kg`);
-        }
-
-        function exportTableToCSV() {
-            if (!filteredData.length) return alert('Nenhum dado disponível para exportação.');
-            const headers = ['Data', 'Semana', 'Setor', 'Produto', 'Kg', 'Variedade', 'Meio da aplicacao', 'Inicio', 'Fim', 'Colaboradores', 'Aplicador'];
-            let csv = 'data:text/csv;charset=utf-8,\uFEFF' + headers.join(';') + '\n';
-            filteredData.forEach(r => {
-                csv += [r.Data, r.Semana, r.Setor, r.Produto, r.Kg, r.Variedade, r.MeioAplicacao, r.Inicio, r.Fim, r.Colaboradores, r.Aplicador].map(e => `"${e}"`).join(';') + '\n';
-            });
-            const a = document.createElement('a'); a.href = encodeURI(csv);
-            a.download = `adubacao_registros_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            document.getElementById('tableTotalCount').innerText = validData.length;
         }
 
         function switchTab(tabName) {
-            const tabs = ['daily', 'comparative', 'table', 'analytics'];
+            const tabs = ['gerais', 'comparativo', 'manuseio', 'tabela'];
+            
             tabs.forEach(t => {
                 const content = document.getElementById(`tabContent-${t}`);
                 const btn = document.getElementById(`tabBtn-${t}`);
-                if (!content || !btn) return;
                 
                 if (t === tabName) {
                     content.classList.add('active');
-                    btn.className = 'tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap bg-agri-600 text-white shadow';
+                    btn.className = 'tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap bg-brand-600 text-white shadow-md';
                 } else {
                     content.classList.remove('active');
-                    btn.className = 'tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-agri-100 hover:bg-agri-800/60';
+                    btn.className = 'tab-btn px-4 py-2 rounded-lg transition flex items-center gap-2 whitespace-nowrap text-slate-300 hover:bg-slate-800 hover:text-white';
                 }
             });
 
-            const res = (inst) => { if(inst) inst.resize(); };
-            if (tabName === 'daily') { res(chartAdubTotalMesInst); res(chartAplicMesInst); }
-            if (tabName === 'comparative') { res(chartSemanaInst); res(chartMeioInst); }
-            if (tabName === 'analytics') { res(chartSetorInst); res(chartAplicadorInst); }
+            setTimeout(() => {
+                if (tabName === 'gerais') {
+                    if(chartBlocoInst) chartBlocoInst.resize();
+                    if(chartEquipInst) chartEquipInst.resize();
+                } else if (tabName === 'comparativo') {
+                    if(chartMesInst) chartMesInst.resize();
+                    if(chartBlocoSemanaInst) chartBlocoSemanaInst.resize();
+                } else if (tabName === 'manuseio') {
+                    if(chartOperadorInst) chartOperadorInst.resize();
+                    if(chartPeriodoMesInst) chartPeriodoMesInst.resize();
+                    if(chartPeriodoSemInst) chartPeriodoSemInst.resize();
+                }
+            }, 50);
         }
 
         function openExportModal() {
@@ -1173,131 +1095,119 @@
 
         function closeExportModal() {
             document.getElementById('exportModal').classList.add('hidden');
-            const btn = document.getElementById('btnConfirmExport');
-            btn.innerHTML = '<i class="fa-solid fa-download"></i> Gerar e Baixar';
-            btn.disabled = false;
         }
 
-        async function executeExport() {
-            const btn = document.getElementById('btnConfirmExport');
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Gerando...';
-            btn.disabled = true;
+        async function exportReport(format) {
+            updateStatusBadge('syncing', 'Gerando Documento...');
+            
+            // Popula os dados do Container de Exportação Dinâmico
+            await prepareExportCanvas();
+            
+            const exportElement = document.getElementById('exportCanvasContainer');
+            
+            // Permite que o container se expanda dinamicamente baseado na quantidade de gráficos escolhidos
+            const originalHeight = exportElement.style.height;
+            exportElement.style.height = 'auto';
 
-            const wantDaily = document.getElementById('exp-daily').checked;
-            const wantComp = document.getElementById('exp-comparative').checked;
-            const wantAnalyt = document.getElementById('exp-analytics').checked;
-            const format = document.querySelector('input[name="exp-format"]:checked').value;
+            // Renderiza
+            const canvas = await html2canvas(exportElement, { 
+                scale: 2.5, 
+                useCORS: true, 
+                logging: false,
+                backgroundColor: '#f8fafc', 
+                width: 1600,
+                windowWidth: 1600,
+                imageTimeout: 0
+            });
+            
+            // Retorna o estilo
+            exportElement.style.height = originalHeight;
 
-            if (!wantDaily && !wantComp && !wantAnalyt) {
-                alert("Selecione pelo menos uma área para exportar.");
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> Gerar e Baixar';
-                btn.disabled = false;
-                return;
+            const timestamp = new Date().getTime();
+
+            if (format === 'jpeg') {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const link = document.createElement('a');
+                link.download = `Relatorio_Rocadeira_${timestamp}.jpg`;
+                link.href = imgData;
+                link.click();
+            } else if (format === 'pdf') {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                
+                // Calcula a altura exata do PDF mantendo a largura de 1280px para gerar página contínua
+                const pdfHeight = (canvas.height / canvas.width) * 1280;
+                const orientation = pdfHeight > 1280 ? 'portrait' : 'landscape';
+                
+                const doc = new window.jspdf.jsPDF({ orientation: orientation, unit: 'px', format: [1280, pdfHeight] });
+                doc.addImage(imgData, 'JPEG', 0, 0, 1280, pdfHeight);
+                doc.save(`Relatorio_Rocadeira_${timestamp}.pdf`);
             }
+            
+            closeExportModal();
+            updateStatusBadge('online', 'Conectado');
+        }
 
-            const mainEl = document.getElementById('mainContainer');
-            const headerEl = document.getElementById('mainHeader');
-            const filterEl = document.getElementById('filterBar');
+        async function prepareExportCanvas() {
+            const kpiTarget = document.getElementById('exportKpis');
+            const chartTarget = document.getElementById('exportCharts');
+            
+            // Preenche data
+            const dateObj = new Date();
+            document.getElementById('exportDateLabel').innerText = dateObj.toLocaleDateString('pt-BR') + ' ' + dateObj.toLocaleTimeString('pt-BR');
+            
+            kpiTarget.innerHTML = '';
+            chartTarget.innerHTML = '';
 
-            const origHeaderDisplay = headerEl.style.display;
-            const origFilterDisplay = filterEl.style.display;
-            const origWidth = mainEl.style.width;
-            const origMaxWidth = mainEl.style.maxWidth;
+            // Clona e Anexa KPIs Selecionados
+            const kpisToClone = [];
+            if(document.getElementById('chk_kpi_gerais').checked) kpisToClone.push(document.querySelector('#tabContent-gerais .grid.grid-cols-1.md\\:grid-cols-3'));
+            if(document.getElementById('chk_kpi_comp').checked) kpisToClone.push(document.querySelector('#tabContent-comparativo .grid.grid-cols-1.md\\:grid-cols-3'));
+            if(document.getElementById('chk_kpi_man').checked) kpisToClone.push(document.querySelector('#tabContent-manuseio .grid.grid-cols-1.md\\:grid-cols-3'));
 
-            headerEl.style.display = 'none';
-            filterEl.style.display = 'none';
+            kpisToClone.forEach(grid => {
+                if(grid) {
+                    const clone = grid.cloneNode(true);
+                    // Força estilo 3 colunas padrão para o relatório horizontal
+                    clone.className = "grid grid-cols-3 gap-6";
+                    kpiTarget.appendChild(clone);
+                }
+            });
 
-            mainEl.style.width = '1200px';
-            mainEl.style.maxWidth = '1200px';
+            // Clona e Anexa Gráficos Selecionados
+            const chartsToClone = [];
+            if(document.getElementById('chk_chart_bloco').checked) chartsToClone.push('chartBloco');
+            if(document.getElementById('chk_chart_equip').checked) chartsToClone.push('chartEquipamento');
+            if(document.getElementById('chk_chart_mes').checked) chartsToClone.push('chartMes');
+            if(document.getElementById('chk_chart_equip_sem').checked) chartsToClone.push('chartBlocoSemana'); // Reaproveitou o ID original
+            if(document.getElementById('chk_chart_op').checked) chartsToClone.push('chartOperador');
+            if(document.getElementById('chk_chart_per_mes').checked) chartsToClone.push('chartPeriodoMes');
+            if(document.getElementById('chk_chart_per_sem').checked) chartsToClone.push('chartPeriodoSemana');
 
-            const dailyEl = document.getElementById('tabContent-daily');
-            const compEl = document.getElementById('tabContent-comparative');
-            const tableEl = document.getElementById('tabContent-table');
-            const analytEl = document.getElementById('tabContent-analytics');
-
-            dailyEl.style.display = wantDaily ? 'block' : 'none';
-            compEl.style.display = wantComp ? 'block' : 'none';
-            tableEl.style.display = 'none';
-            analytEl.style.display = wantAnalyt ? 'block' : 'none';
-
-            const reportTitle = document.createElement('div');
-            reportTitle.id = 'reportTempTitle';
-            reportTitle.className = 'bg-white p-6 rounded-2xl border border-slate-200 mb-6 flex items-center justify-between shadow-sm';
-            reportTitle.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <img src="https://i.imgur.com/GZPcOWg.png" class="h-12 w-auto object-contain">
-                    <div>
-                        <h1 class="text-xl font-bold text-slate-800">Relatório de Controle de Adubação</h1>
-                        <p class="text-xs text-slate-500 mt-1">Gerado em: ${new Date().toLocaleString('pt-BR')} | Filtros Aplicados</p>
-                    </div>
-                </div>
-                <div class="text-right text-xs text-slate-400 font-medium">
-                    Sistema de Monitoramento Agrícola
-                </div>
-            `;
-            mainEl.insertBefore(reportTitle, mainEl.firstChild);
-
-            Object.values(Chart.instances).forEach(c => c.resize());
-
-            await new Promise(r => setTimeout(r, 450));
-
-            try {
-                const canvas = await html2canvas(mainEl, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#f8fafc',
-                    logging: false
-                });
-
-                if (format === 'jpeg') {
-                    const link = document.createElement('a');
-                    link.download = `Relatorio_Adubacao_${new Date().toISOString().slice(0,10)}.jpg`;
-                    link.href = canvas.toDataURL('image/jpeg', 0.95);
-                    link.click();
-                } else {
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const pageHeight = pdf.internal.pageSize.getHeight();
-
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    const imgWidth = pageWidth;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-                    let heightLeft = imgHeight;
-                    let position = 0;
-
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-
-                    while (heightLeft > 0) {
-                        position -= pageHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
+            chartsToClone.forEach(id => {
+                const canvas = document.getElementById(id);
+                if(canvas) {
+                    const titleNode = canvas.parentElement.parentElement.querySelector('h2');
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = "bg-white rounded-2xl p-5 shadow-md border border-slate-200/80 flex flex-col h-full";
+                    
+                    if(titleNode) {
+                        const clonedTitle = titleNode.cloneNode(true);
+                        clonedTitle.className = "text-xl font-bold text-slate-800 flex items-center gap-3 mb-4 pb-3 border-b border-slate-100";
+                        wrapper.appendChild(clonedTitle);
                     }
 
-                    pdf.save(`Relatorio_Adubacao_${new Date().toISOString().slice(0,10)}.pdf`);
+                    const img = document.createElement('img');
+                    img.src = canvas.toDataURL('image/png', 1.0);
+                    img.className = "w-full object-contain mt-auto"; 
+                    
+                    wrapper.appendChild(img);
+                    chartTarget.appendChild(wrapper);
                 }
-            } catch (err) {
-                console.error("Export Error:", err);
-                alert("Erro ao exportar o relatório. Por favor, tente novamente.");
-            } finally {
-                if (document.getElementById('reportTempTitle')) {
-                    document.getElementById('reportTempTitle').remove();
-                }
-                headerEl.style.display = origHeaderDisplay;
-                filterEl.style.display = origFilterDisplay;
-                mainEl.style.width = origWidth;
-                mainEl.style.maxWidth = origMaxWidth;
-
-                const currentActive = document.querySelector('.tab-btn.bg-agri-600')?.id.replace('tabBtn-', '') || 'daily';
-                switchTab(currentActive);
-
-                Object.values(Chart.instances).forEach(c => c.resize());
-
-                closeExportModal();
-            }
+            });
+            
+            // Aguarda a renderização no DOM
+            return new Promise(res => setTimeout(res, 300));
         }
     </script>
 </body>
