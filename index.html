@@ -63,7 +63,7 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <!-- Brand / Logo -->
                 <div class="flex items-center space-x-3">
-                    <div class="flex items-center justify-center p-1 bg-white/10 rounded-xl">
+                    <div class="flex items-center justify-center">
                         <img src="https://i.imgur.com/GZPcOWg.png" alt="Logo" class="h-10 w-auto object-contain">
                     </div>
                     <div>
@@ -973,8 +973,24 @@
             const data = sortedKeys.map(k => dataObj[k]);
 
             chartSemanaInst = new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: { labels: labels, datasets: [{ label: 'Total (kg)', data: data, backgroundColor: '#0284c7', borderRadius: 6 }] },
+                type: 'line',
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: 'Total (kg)', 
+                        data: data, 
+                        borderColor: '#0284c7',
+                        backgroundColor: 'rgba(2, 132, 199, 0.12)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#0284c7',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2
+                    }] 
+                },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { 
