@@ -20,6 +20,7 @@
                             700: '#15803d',
                             800: '#166534',
                             900: '#14532d',
+                            950: '#052e16'
                         }
                     }
                 }
@@ -30,7 +31,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -52,22 +53,18 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        
-        /* Multiple Select Styling */
-        select[multiple] { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f1f1; }
-        select[multiple] option { padding: 4px 8px; border-radius: 4px; margin-bottom: 2px; }
-        select[multiple] option:checked { background-color: #dcfce7; color: #166534; font-weight: 500; }
     </style>
 </head>
 <body class="h-full flex flex-col text-slate-800 antialiased selection:bg-agri-500 selection:text-white">
 
     <!-- Header -->
     <header class="bg-agri-900 text-white shadow-lg sticky top-0 z-50 transition-all duration-300" id="mainHeader">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <!-- Brand / Logo -->
                 <div class="flex items-center space-x-3">
-                    <div class="flex items-center justify-center">
-                        <img src="https://i.imgur.com/GZPcOWg.png" alt="Logo" class="h-10 w-auto object-contain drop-shadow-md">
+                    <div class="flex items-center justify-center p-1 bg-white/10 rounded-xl">
+                        <img src="https://i.imgur.com/GZPcOWg.png" alt="Logo" class="h-10 w-auto object-contain">
                     </div>
                     <div>
                         <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -80,17 +77,15 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
-                    <button id="btnExport" onclick="openExportModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-medium rounded-lg transition duration-200 flex items-center gap-2 shadow-sm border border-indigo-500">
-                        <i class="fa-solid fa-download text-xs"></i>
-                        <span>Exportar</span>
+                <!-- Global Action Buttons -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <button id="btnExport" onclick="openExportModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition duration-200 flex items-center gap-2 shadow-sm border border-indigo-500">
+                        <i class="fa-solid fa-file-export text-xs"></i>
+                        <span>Exportar Relatório</span>
                     </button>
-                    <button id="btnRefresh" onclick="loadSpreadsheetData()" class="px-3.5 py-2 bg-agri-700 hover:bg-agri-600 active:bg-agri-800 text-white text-sm font-medium rounded-lg transition duration-200 flex items-center gap-2 shadow-sm border border-agri-600">
+                    <button id="btnRefresh" onclick="loadSpreadsheetData()" class="px-3.5 py-2 bg-agri-700 hover:bg-agri-600 active:bg-agri-800 text-white text-xs font-semibold rounded-lg transition duration-200 flex items-center gap-2 shadow-sm border border-agri-600">
                         <i class="fa-solid fa-rotate text-xs"></i>
                         <span>Sincronizar</span>
-                    </button>
-                    <button onclick="toggleFallbackModal()" class="px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg transition border border-slate-700" title="Informações de Conexão">
-                        <i class="fa-solid fa-plug"></i>
                     </button>
                 </div>
             </div>
@@ -121,50 +116,103 @@
     <main id="mainContainer" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 transition-all duration-300 bg-slate-50">
 
         <!-- Global Filter Bar -->
-        <div id="filterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col xl:flex-row xl:items-start justify-between gap-4">
-            <div class="flex items-center gap-2 text-slate-700 font-semibold text-sm min-w-max pt-2">
-                <i class="fa-solid fa-filter text-agri-600"></i>
-                <span>Filtros Globais:</span>
-            </div>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 w-full items-start">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Data Inicial</label>
-                    <input type="date" id="filterDateStart" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 focus:ring-agri-500 focus:border-agri-500 h-10">
+        <div id="filterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-2 text-slate-700 font-bold text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-filter text-agri-600"></i>
+                    <span>Filtros Globais Interativos</span>
                 </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Data Final</label>
-                    <input type="date" id="filterDateEnd" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 focus:ring-agri-500 focus:border-agri-500 h-10">
-                </div>
-                <div>
-                    <label class="flex justify-between items-center text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">
-                        Setor <span class="text-[9px] text-slate-400 normal-case">(Ctrl + Click)</span>
-                    </label>
-                    <select id="filterSetor" multiple size="3" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-1.5 focus:ring-agri-500 focus:border-agri-500 custom-scrollbar h-24">
-                        <option value="ALL" selected>Todos os Setores</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="flex justify-between items-center text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">
-                        Produto <span class="text-[9px] text-slate-400 normal-case">(Ctrl + Click)</span>
-                    </label>
-                    <select id="filterProduto" multiple size="3" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-1.5 focus:ring-agri-500 focus:border-agri-500 custom-scrollbar h-24">
-                        <option value="ALL" selected>Todos os Produtos</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-500 mb-1 uppercase tracking-wider">Busca Geral</label>
-                    <div class="relative">
-                        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Aplicador, Meio..." class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg p-2 pl-8 focus:ring-agri-500 focus:border-agri-500 h-10">
-                        <i class="fa-solid fa-search absolute left-2.5 top-[13px] text-slate-400 text-xs"></i>
-                    </div>
-                </div>
+                <button onclick="resetFilters()" class="text-xs text-slate-500 hover:text-agri-700 font-medium flex items-center gap-1 transition">
+                    <i class="fa-solid fa-arrow-rotate-left"></i> Limpar Filtros
+                </button>
             </div>
 
-            <div class="flex items-center gap-2 self-end xl:self-start xl:mt-6">
-                <button onclick="resetFilters()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-lg transition flex items-center gap-1.5 whitespace-nowrap h-10">
-                    <i class="fa-solid fa-arrow-rotate-left"></i> Limpar
-                </button>
+            <!-- Filter Controls Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
+                <!-- Date Start -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Data Inicial</label>
+                    <input type="date" id="filterDateStart" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 focus:ring-2 focus:ring-agri-500 focus:border-agri-500 h-9">
+                </div>
+
+                <!-- Date End -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Data Final</label>
+                    <input type="date" id="filterDateEnd" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 focus:ring-2 focus:ring-agri-500 focus:border-agri-500 h-9">
+                </div>
+
+                <!-- Multi-select Dropdown: Ano -->
+                <div class="relative filter-dropdown-container">
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Ano</label>
+                    <button type="button" onclick="toggleDropdown('menuAno')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
+                        <span id="labelAno" class="truncate font-medium">Todos os Anos</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <div id="menuAno" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
+                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
+                            <input type="checkbox" id="chkAnoAll" value="ALL" checked onchange="toggleSelectAll('chkAnoAll', 'optionsAno')">
+                            <span>Todos os Anos</span>
+                        </label>
+                        <div id="optionsAno" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
+                    </div>
+                </div>
+
+                <!-- Multi-select Dropdown: Semana -->
+                <div class="relative filter-dropdown-container">
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Semana</label>
+                    <button type="button" onclick="toggleDropdown('menuSemana')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
+                        <span id="labelSemana" class="truncate font-medium">Todas as Semanas</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <div id="menuSemana" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
+                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
+                            <input type="checkbox" id="chkSemanaAll" value="ALL" checked onchange="toggleSelectAll('chkSemanaAll', 'optionsSemana')">
+                            <span>Todas as Semanas</span>
+                        </label>
+                        <div id="optionsSemana" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
+                    </div>
+                </div>
+
+                <!-- Multi-select Dropdown: Setor -->
+                <div class="relative filter-dropdown-container">
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Setor</label>
+                    <button type="button" onclick="toggleDropdown('menuSetor')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
+                        <span id="labelSetor" class="truncate font-medium">Todos os Setores</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <div id="menuSetor" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
+                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
+                            <input type="checkbox" id="chkSetorAll" value="ALL" checked onchange="toggleSelectAll('chkSetorAll', 'optionsSetor')">
+                            <span>Todos os Setores</span>
+                        </label>
+                        <div id="optionsSetor" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
+                    </div>
+                </div>
+
+                <!-- Multi-select Dropdown: Produto -->
+                <div class="relative filter-dropdown-container">
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Produto</label>
+                    <button type="button" onclick="toggleDropdown('menuProduto')" class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg px-2.5 py-2 flex items-center justify-between focus:ring-2 focus:ring-agri-500 h-9">
+                        <span id="labelProduto" class="truncate font-medium">Todos os Produtos</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                    <div id="menuProduto" class="filter-dropdown-menu hidden absolute top-full right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-30 p-2 text-xs space-y-1">
+                        <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer font-bold border-b border-slate-100">
+                            <input type="checkbox" id="chkProdutoAll" value="ALL" checked onchange="toggleSelectAll('chkProdutoAll', 'optionsProduto')">
+                            <span>Todos os Produtos</span>
+                        </label>
+                        <div id="optionsProduto" class="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5 pt-1"></div>
+                    </div>
+                </div>
+
+                <!-- Search Input -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Busca Geral</label>
+                    <div class="relative">
+                        <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Aplicador, Meio..." class="w-full bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 pl-8 focus:ring-2 focus:ring-agri-500 focus:border-agri-500 h-9">
+                        <i class="fa-solid fa-search absolute left-2.5 top-[11px] text-slate-400 text-xs"></i>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -190,6 +238,7 @@
                         </p>
                     </div>
                 </div>
+
                 <!-- KPI 2 -->
                 <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
                     <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
@@ -206,6 +255,7 @@
                         </p>
                     </div>
                 </div>
+
                 <!-- KPI 3 -->
                 <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
                     <div class="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
@@ -223,6 +273,7 @@
                         </p>
                     </div>
                 </div>
+
                 <!-- KPI 4 -->
                 <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group hover:shadow-md transition">
                     <div class="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
@@ -244,7 +295,7 @@
                 </div>
             </div>
 
-            <!-- Gráfico 1: Total por Mês -->
+            <!-- Gráfico 1: Adubação Total por Mês -->
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
                     <div>
@@ -252,9 +303,9 @@
                             <i class="fa-solid fa-chart-bar text-agri-600"></i>
                             Adubação Total por Mês
                         </h2>
-                        <p class="text-xs text-slate-500">Soma de kg aplicados em cada mês</p>
+                        <p class="text-xs text-slate-500">Volume acumulado de kg aplicados em cada mês</p>
                     </div>
-                    <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-md self-start sm:self-auto">Total Mensal (kg)</span>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-md self-start sm:self-auto">Total Mensal (kg)</span>
                 </div>
                 <div class="relative h-72 w-full">
                     <canvas id="chartAdubacaoTotalMes"></canvas>
@@ -269,10 +320,10 @@
                             <i class="fa-solid fa-calendar-day text-agri-600"></i>
                             Aplicação Média Diária por Mês
                         </h2>
-                        <p class="text-xs text-slate-500">Média de adubação diária segmentada por produto e total geral diário</p>
+                        <p class="text-xs text-slate-500">Média de adubação diária segmentada por produto e média total diária acumulada</p>
                     </div>
-                    <div class="flex items-center gap-2 text-xs text-slate-500">
-                        <i class="fa-solid fa-chart-simple text-agri-500"></i> Barras Individuais por Produto e Média Total
+                    <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                        <i class="fa-solid fa-chart-simple text-agri-500"></i> Barras Individuais por Produto + Média Total
                     </div>
                 </div>
                 <div class="relative h-80 sm:h-96 w-full">
@@ -310,25 +361,30 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Vertical Stacked Charts for Comparativo -->
+            <div class="grid grid-cols-1 gap-6">
                 <!-- Gráfico 3: Total Aplicado por Semana -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h3 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-agri-600"></i> Total Aplicado por Semana
-                    </h3>
-                    <p class="text-xs text-slate-500 mb-4">Volume acumulado com base na coluna "Semana"</p>
-                    <div class="relative h-72">
+                    <div class="pb-3 mb-4 border-b border-slate-100">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-agri-600"></i> Total Aplicado por Semana
+                        </h3>
+                        <p class="text-xs text-slate-500">Volume acumulado em kg com base na coluna "Semana"</p>
+                    </div>
+                    <div class="relative h-80 sm:h-96 w-full">
                         <canvas id="chartTotalSemana"></canvas>
                     </div>
                 </div>
 
                 <!-- Gráfico 4: Total por Meio de Aplicação -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
-                    <h3 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-droplet text-agri-600"></i> Total por Meio da Aplicação
-                    </h3>
-                    <p class="text-xs text-slate-500 mb-4">Distribuição de kg aplicados segundo o método</p>
-                    <div class="relative h-72">
+                    <div class="pb-3 mb-4 border-b border-slate-100">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-droplet text-agri-600"></i> Total por Meio da Aplicação
+                        </h3>
+                        <p class="text-xs text-slate-500">Distribuição total de adubação por tipo e método de aplicação</p>
+                    </div>
+                    <div class="relative h-80 sm:h-96 w-full">
                         <canvas id="chartTotalMeio"></canvas>
                     </div>
                 </div>
@@ -343,7 +399,7 @@
                         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-table text-agri-600"></i> Registros de Aplicação
                         </h2>
-                        <p class="text-xs text-slate-500">Lista completa com colunas sincronizadas da planilha oficial</p>
+                        <p class="text-xs text-slate-500">Lista completa das aplicações sincronizadas da planilha oficial</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="exportTableToCSV()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition flex items-center gap-2">
@@ -387,90 +443,75 @@
         <!-- TAB 4: ANÁLISE DETALHADA -->
         <div id="tabContent-analytics" class="tab-content space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Breakdown by Setor -->
+                <!-- Breakdown by Setor (%) -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
                     <h3 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-agri-600"></i> Distribuição por Setor (Kg)
+                        <i class="fa-solid fa-chart-pie text-agri-600"></i> Distribuição por Setor (%)
                     </h3>
-                    <div class="relative h-72"><canvas id="chartSetorBreakdown"></canvas></div>
+                    <p class="text-xs text-slate-500 mb-4">Percentual de adubação aplicada em cada setor/bloco</p>
+                    <div class="relative h-80"><canvas id="chartSetorBreakdown"></canvas></div>
                 </div>
 
-                <!-- Breakdown by Aplicador -->
+                <!-- Breakdown by Aplicador (%) -->
                 <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80">
                     <h3 class="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-user-check text-agri-600"></i> Aplicações por Aplicador e Meio
+                        <i class="fa-solid fa-user-check text-agri-600"></i> Aplicações por Aplicador e Meio (%)
                     </h3>
-                    <div class="relative h-72"><canvas id="chartAplicadorBreakdown"></canvas></div>
+                    <p class="text-xs text-slate-500 mb-4">Proporção percentual do meio de aplicação por colaborador</p>
+                    <div class="relative h-80"><canvas id="chartAplicadorBreakdown"></canvas></div>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- Connection Modal -->
-    <div id="connectionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 border border-slate-200">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-link text-agri-600"></i> Fonte dos Dados</h3>
-                <button onclick="toggleFallbackModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="text-xs text-slate-600 space-y-3">
-                <p>Buscando dados da planilha do Google Sheets através do link CSV:</p>
-                <div class="bg-slate-100 p-2.5 rounded-lg break-all font-mono text-[11px] text-slate-700 border border-slate-200">
-                    https://docs.google.com/spreadsheets/d/e/2PACX-1vTJfPIEW6e5KKB1AHQGEptWfx3ZgF8np8eRyn2tFxVIIS8COWQIk0SS3V5n75k6BJoqd0teSi8suhvJ/pub?output=csv
-                </div>
-            </div>
-            <div class="pt-2 flex justify-end">
-                <button onclick="toggleFallbackModal()" class="px-4 py-2 bg-agri-700 hover:bg-agri-800 text-white rounded-lg text-xs font-semibold">Entendido</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Export Modal -->
+    <!-- Export Configuration Modal -->
     <div id="exportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-5 border border-slate-200">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-file-export text-indigo-600"></i> Exportar Gráficos</h3>
-                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <h3 class="font-bold text-slate-800 flex items-center gap-2 text-base">
+                    <i class="fa-solid fa-file-export text-indigo-600"></i> Exportar Relatório Fotográfico
+                </h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             
             <div class="space-y-4">
                 <div>
-                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">1. Selecione os Dados</h4>
-                    <div class="space-y-2 text-sm text-slate-700">
-                        <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded">
-                            <input type="checkbox" id="exp-daily" class="rounded text-indigo-600 focus:ring-indigo-500" checked> 
-                            Dados Diários (Campos Gerais e Gráficos)
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">1. Selecione as Seções</h4>
+                    <div class="space-y-2 text-xs sm:text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-white p-1.5 rounded-lg transition">
+                            <input type="checkbox" id="exp-daily" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" checked> 
+                            <span>Dados Diários (Campos e Gráficos Mensais)</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded">
-                            <input type="checkbox" id="exp-comparative" class="rounded text-indigo-600 focus:ring-indigo-500" checked> 
-                            Comparativo (Campos e Gráficos Semanais)
+                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-white p-1.5 rounded-lg transition">
+                            <input type="checkbox" id="exp-comparative" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" checked> 
+                            <span>Comparativo (Semanas e Meio de Aplicação)</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded">
-                            <input type="checkbox" id="exp-analytics" class="rounded text-indigo-600 focus:ring-indigo-500" checked> 
-                            Análise Detalhada (Por Setor e Aplicador)
+                        <label class="flex items-center gap-2.5 cursor-pointer hover:bg-white p-1.5 rounded-lg transition">
+                            <input type="checkbox" id="exp-analytics" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" checked> 
+                            <span>Análise Detalhada (Por Setor e Aplicador)</span>
                         </label>
                     </div>
                 </div>
 
                 <div>
                     <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">2. Formato de Saída</h4>
-                    <div class="flex gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer">
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center justify-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition">
                             <input type="radio" name="exp-format" value="pdf" class="text-indigo-600 focus:ring-indigo-500" checked> 
-                            <span class="text-sm font-medium text-slate-700">PDF Retrato</span>
+                            <span class="text-xs font-semibold text-slate-700"><i class="fa-solid fa-file-pdf text-red-500 mr-1"></i> Documento PDF</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
+                        <label class="flex items-center justify-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition">
                             <input type="radio" name="exp-format" value="jpeg" class="text-indigo-600 focus:ring-indigo-500"> 
-                            <span class="text-sm font-medium text-slate-700">Imagem JPEG</span>
+                            <span class="text-xs font-semibold text-slate-700"><i class="fa-solid fa-image text-blue-500 mr-1"></i> Imagem JPEG</span>
                         </label>
                     </div>
                 </div>
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
-                <button onclick="closeExportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold">Cancelar</button>
-                <button onclick="executeExport()" id="btnConfirmExport" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition">
+                <button onclick="closeExportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">Cancelar</button>
+                <button onclick="executeExport()" id="btnConfirmExport" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow">
                     <i class="fa-solid fa-download"></i> Gerar e Baixar
                 </button>
             </div>
@@ -492,18 +533,23 @@
 
         const fallbackDataset = [
             { Data: "05/01/2026", Semana: "1", Setor: "Setor A", Produto: "NPK 10-10-10", Kg: "150", Variedade: "Bourbon", "Meio da aplicação": "Via Solo", Inicio: "07:30", Fim: "09:30", Colaboradores: "2", Aplicador: "Carlos" },
-            { Data: "12/01/2026", Semana: "2", Setor: "Setor B", Produto: "Ureia", Kg: "220", Variedade: "Catuaí", "Meio da aplicação": "Fertirrigação", Inicio: "08:00", Fim: "11:00", Colaboradores: "1", Aplicador: "João" }
+            { Data: "12/01/2026", Semana: "2", Setor: "Setor B", Produto: "Ureia", Kg: "220", Variedade: "Catuaí", "Meio da aplicação": "Fertirrigação", Inicio: "08:00", Fim: "11:00", Colaboradores: "1", Aplicador: "João" },
+            { Data: "18/02/2026", Semana: "7", Setor: "Setor A", Produto: "Ureia", Kg: "300", Variedade: "Bourbon", "Meio da aplicação": "Foliar", Inicio: "08:00", Fim: "10:30", Colaboradores: "2", Aplicador: "Carlos" }
         ];
 
         Chart.register(ChartDataLabels);
 
-        window.onload = () => loadSpreadsheetData();
+        window.onload = () => {
+            loadSpreadsheetData();
+            
+            // Close dropdowns when clicking outside
+            window.addEventListener('click', function(e) {
+                if (!e.target.closest('.filter-dropdown-container')) {
+                    document.querySelectorAll('.filter-dropdown-menu').forEach(el => el.classList.add('hidden'));
+                }
+            });
+        };
 
-        function toggleFallbackModal() {
-            document.getElementById('connectionModal').classList.toggle('hidden');
-        }
-
-        // Safe DOM updater
         function setInnerText(id, text) {
             const el = document.getElementById(id);
             if (el) el.innerText = text;
@@ -523,12 +569,12 @@
                         updateStatusBadge('online');
                         processAndRenderData(true);
                     } else {
-                        useFallback('Planilha vazia ou sem estrutura.');
+                        useFallback('Planilha sem registros.');
                     }
                 },
                 error: function(err) {
-                    console.warn("Erro no CSV, usando contingência:", err);
-                    useFallback('Dados Offline (Erro CSV)');
+                    console.warn("Erro ao buscar CSV. Usando contingência:", err);
+                    useFallback('Modo Local Offline');
                 }
             });
         }
@@ -576,10 +622,12 @@
                 }
 
                 const dateObj = parseDateString(dataVal);
+                const anoVal = dateObj ? dateObj.getFullYear() : 'Outros';
 
                 return {
                     Data: dataVal || 'N/A',
                     DateObj: dateObj,
+                    Ano: anoVal,
                     MonthKey: dateObj ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}` : 'Outros',
                     MonthLabel: dateObj ? dateObj.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : 'Outros',
                     DayKey: dateObj ? dateObj.toISOString().split('T')[0] : 'Unknown',
@@ -602,8 +650,8 @@
             if (!str) return null;
             const parts = str.split(/[\/\-]/);
             if (parts.length === 3) {
-                if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]); // YYYY-MM-DD
-                if (parts[2].length === 4) return new Date(parts[2], parts[1] - 1, parts[0]); // DD-MM-YYYY
+                if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]);
+                if (parts[2].length === 4) return new Date(parts[2], parts[1] - 1, parts[0]);
             }
             const d = new Date(str);
             return isNaN(d.getTime()) ? null : d;
@@ -618,40 +666,91 @@
             } catch (e) { return 0; }
         }
 
-        function processAndRenderData(rebuildFilters = false) {
-            if (rebuildFilters) populateFilterOptions();
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const isHidden = el.classList.contains('hidden');
+            document.querySelectorAll('.filter-dropdown-menu').forEach(m => m.classList.add('hidden'));
+            if (isHidden) el.classList.remove('hidden');
+        }
+
+        function toggleSelectAll(allChkId, containerId) {
+            const allChk = document.getElementById(allChkId);
+            const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]`);
+            checkboxes.forEach(cb => cb.checked = allChk.checked);
             applyFilters();
         }
 
-        function populateFilterOptions() {
-            const setorSel = document.getElementById('filterSetor');
-            const prodSel = document.getElementById('filterProduto');
-            if(!setorSel || !prodSel) return;
+        function processAndRenderData(rebuildFilters = false) {
+            if (rebuildFilters) buildFilterCheckboxMenus();
+            applyFilters();
+        }
 
-            // Save current selections before rebuild
-            const selSetores = Array.from(setorSel.selectedOptions).map(o => o.value);
-            const selProds = Array.from(prodSel.selectedOptions).map(o => o.value);
+        function buildFilterCheckboxMenus() {
+            const anos = [...new Set(rawData.map(r => String(r.Ano)))].filter(v => v !== 'N/A' && v !== 'Outros').sort();
+            const semanas = [...new Set(rawData.map(r => String(r.Semana)))].filter(v => v !== 'N/A').sort((a,b) => parseInt(a)-parseInt(b));
+            const setores = [...new Set(rawData.map(r => r.Setor))].filter(v => v !== 'N/A').sort();
+            const produtos = [...new Set(rawData.map(r => r.Produto))].filter(v => v !== 'N/A').sort();
 
-            const setores = [...new Set(rawData.map(r => r.Setor))].filter(Boolean).sort();
-            const produtos = [...new Set(rawData.map(r => r.Produto))].filter(Boolean).sort();
+            renderCheckboxList('optionsAno', anos, 'chkAno');
+            renderCheckboxList('optionsSemana', semanas, 'chkSemana', 'Semana ');
+            renderCheckboxList('optionsSetor', setores, 'chkSetor');
+            renderCheckboxList('optionsProduto', produtos, 'chkProduto');
+        }
 
-            setorSel.innerHTML = '<option value="ALL">Todos os Setores</option>' + setores.map(s => `<option value="${s}">${s}</option>`).join('');
-            prodSel.innerHTML = '<option value="ALL">Todos os Produtos</option>' + produtos.map(p => `<option value="${p}">${p}</option>`).join('');
+        function renderCheckboxList(containerId, items, prefix, labelPrefix = '') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = items.map((item, idx) => `
+                <label class="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer text-slate-700">
+                    <input type="checkbox" id="${prefix}_${idx}" value="${item}" checked onchange="updateFilterLabel('${containerId}')" class="rounded text-agri-600 focus:ring-agri-500">
+                    <span>${labelPrefix}${item}</span>
+                </label>
+            `).join('');
+        }
 
-            // Restore selections
-            Array.from(setorSel.options).forEach(opt => {
-                opt.selected = selSetores.includes(opt.value) || (selSetores.length === 0 && opt.value === 'ALL');
-            });
-            Array.from(prodSel.options).forEach(opt => {
-                opt.selected = selProds.includes(opt.value) || (selProds.length === 0 && opt.value === 'ALL');
-            });
+        function getCheckedValues(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return [];
+            const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checked).map(c => c.value);
+        }
+
+        function updateFilterLabel(containerId) {
+            const checkedVals = getCheckedValues(containerId);
+            const totalCount = document.querySelectorAll(`#${containerId} input[type="checkbox"]`).length;
+            
+            let labelId = '';
+            let allChkId = '';
+            let defaultText = '';
+
+            if (containerId === 'optionsAno') { labelId = 'labelAno'; allChkId = 'chkAnoAll'; defaultText = 'Todos os Anos'; }
+            if (containerId === 'optionsSemana') { labelId = 'labelSemana'; allChkId = 'chkSemanaAll'; defaultText = 'Todas as Semanas'; }
+            if (containerId === 'optionsSetor') { labelId = 'labelSetor'; allChkId = 'chkSetorAll'; defaultText = 'Todos os Setores'; }
+            if (containerId === 'optionsProduto') { labelId = 'labelProduto'; allChkId = 'chkProdutoAll'; defaultText = 'Todos os Produtos'; }
+
+            const allChk = document.getElementById(allChkId);
+            if (allChk) {
+                allChk.checked = (checkedVals.length === totalCount);
+            }
+
+            const labelEl = document.getElementById(labelId);
+            if (labelEl) {
+                if (checkedVals.length === 0) {
+                    labelEl.innerText = 'Nenhum selecionado';
+                } else if (checkedVals.length === totalCount) {
+                    labelEl.innerText = defaultText;
+                } else {
+                    labelEl.innerText = `${checkedVals.length} selecionado(s)`;
+                }
+            }
+
+            applyFilters();
         }
 
         function applyFilters() {
             const dateStartEl = document.getElementById('filterDateStart');
             const dateEndEl = document.getElementById('filterDateEnd');
-            const setorEl = document.getElementById('filterSetor');
-            const produtoEl = document.getElementById('filterProduto');
             const searchEl = document.getElementById('filterSearch');
 
             const startStr = dateStartEl ? dateStartEl.value : '';
@@ -660,22 +759,24 @@
             const startDate = startStr ? new Date(startStr + 'T00:00:00') : null;
             const endDate = endStr ? new Date(endStr + 'T23:59:59') : null;
 
-            // MULTI-SELECT LOGIC
-            const setorOpts = setorEl ? Array.from(setorEl.selectedOptions).map(o => o.value) : ['ALL'];
-            const produtoOpts = produtoEl ? Array.from(produtoEl.selectedOptions).map(o => o.value) : ['ALL'];
-
-            const setorValues = (setorOpts.length === 0 || setorOpts.includes('ALL')) ? ['ALL'] : setorOpts;
-            const produtoValues = (produtoOpts.length === 0 || produtoOpts.includes('ALL')) ? ['ALL'] : produtoOpts;
+            const selAnos = getCheckedValues('optionsAno');
+            const selSemanas = getCheckedValues('optionsSemana');
+            const selSetores = getCheckedValues('optionsSetor');
+            const selProdutos = getCheckedValues('optionsProduto');
 
             const search = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
             filteredData = rawData.filter(item => {
                 if (startDate && item.DateObj && item.DateObj < startDate) return false;
                 if (endDate && item.DateObj && item.DateObj > endDate) return false;
-                if (!setorValues.includes('ALL') && !setorValues.includes(item.Setor)) return false;
-                if (!produtoValues.includes('ALL') && !produtoValues.includes(item.Produto)) return false;
+                
+                if (selAnos.length > 0 && !selAnos.includes(String(item.Ano))) return false;
+                if (selSemanas.length > 0 && !selSemanas.includes(String(item.Semana))) return false;
+                if (selSetores.length > 0 && !selSetores.includes(String(item.Setor))) return false;
+                if (selProdutos.length > 0 && !selProdutos.includes(String(item.Produto))) return false;
+
                 if (search) {
-                    const str = `${item.Aplicador} ${item.Colaboradores} ${item.Variedade} ${item.MeioAplicacao}`.toLowerCase();
+                    const str = `${item.Aplicador} ${item.Colaboradores} ${item.Variedade} ${item.MeioAplicacao} ${item.Setor} ${item.Produto}`.toLowerCase();
                     if (!str.includes(search)) return false;
                 }
                 return true;
@@ -689,14 +790,18 @@
         function resetFilters() {
             if(document.getElementById('filterDateStart')) document.getElementById('filterDateStart').value = '';
             if(document.getElementById('filterDateEnd')) document.getElementById('filterDateEnd').value = '';
-            
-            const setorSel = document.getElementById('filterSetor');
-            if(setorSel) Array.from(setorSel.options).forEach(opt => opt.selected = (opt.value === 'ALL'));
-            
-            const prodSel = document.getElementById('filterProduto');
-            if(prodSel) Array.from(prodSel.options).forEach(opt => opt.selected = (opt.value === 'ALL'));
-
             if(document.getElementById('filterSearch')) document.getElementById('filterSearch').value = '';
+
+            ['chkAnoAll', 'chkSemanaAll', 'chkSetorAll', 'chkProdutoAll'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.checked = true; }
+            });
+
+            ['optionsAno', 'optionsSemana', 'optionsSetor', 'optionsProduto'].forEach(cId => {
+                document.querySelectorAll(`#${cId} input[type="checkbox"]`).forEach(cb => cb.checked = true);
+                updateFilterLabel(cId);
+            });
+
             applyFilters();
         }
 
@@ -704,7 +809,7 @@
             // TAB 1 KPIs
             const totalKg = filteredData.reduce((acc, r) => acc + r.Kg, 0);
             setInnerText('kpiTotalKg', totalKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
-            setInnerText('kpiCountApps', `${filteredData.length} registros no filtro`);
+            setInnerText('kpiCountApps', `${filteredData.length} registros filtrados`);
 
             const validDurations = filteredData.filter(r => r.DurationMinutes > 0);
             const totalMinutes = validDurations.reduce((acc, r) => acc + r.DurationMinutes, 0);
@@ -712,11 +817,11 @@
             const hours = Math.floor(avgMinutes / 60);
             const mins = avgMinutes % 60;
             setInnerText('kpiMediaTempo', hours > 0 ? `${hours}h ${mins}m` : `${mins} min`);
-            setInnerText('kpiTotalTempo', `Acumulado: ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`);
+            setInnerText('kpiTotalTempo', `Total acumulado: ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`);
 
             const activeSetores = [...new Set(filteredData.map(r => r.Setor))].filter(s => s !== 'N/A');
             setInnerText('kpiMediaBloco', activeSetores.length > 0 ? Math.round(totalKg / activeSetores.length).toLocaleString('pt-BR') : '0');
-            setInnerText('kpiSetorCount', `${activeSetores.length} setores`);
+            setInnerText('kpiSetorCount', `${activeSetores.length} setores ativos`);
 
             const prodTotals = {};
             filteredData.forEach(r => {
@@ -733,7 +838,7 @@
             setInnerText('kpiTopProdutoKg', maxKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
             setInnerText('kpiTopProdutoPercent', totalKg > 0 ? `${((maxKg / totalKg) * 100).toFixed(1)}% do total` : '0% do total');
 
-            // TAB 2 (Comparativo) KPIs
+            // TAB 2 KPIs
             const uniqueWeeks = new Set(filteredData.map(r => r.Semana).filter(s => s !== 'N/A'));
             setInnerText('compKpiSemanas', uniqueWeeks.size.toString());
 
@@ -746,13 +851,10 @@
             for (let m in meioTotals) { if (meioTotals[m] > maxMeioKg) { maxMeioKg = meioTotals[m]; topMeio = m; } }
             
             setInnerText('compKpiMeioNome', topMeio);
-            const compTitleEl = document.getElementById('compKpiMeioNome');
-            if(compTitleEl) compTitleEl.title = topMeio;
             setInnerText('compKpiMeioKg', maxMeioKg.toLocaleString('pt-BR', { maximumFractionDigits: 1 }));
         }
 
         function renderCharts() {
-            // Grouping Data
             const monthlyData = {};
             filteredData.forEach(r => {
                 const k = r.MonthKey;
@@ -766,14 +868,15 @@
             const sortedMonths = Object.keys(monthlyData).sort();
             const monthLabels = sortedMonths.map(k => monthlyData[k].label);
             
-            // 1. Total Adubação por Mês (Changed from average to Total per User Request)
+            // 1. Total Adubação por Mês
             const totalMensal = sortedMonths.map(k => parseFloat(monthlyData[k].totalKg.toFixed(1)));
             renderAdubacaoTotalChart(monthLabels, totalMensal);
 
-            // 2. Aplicação Média Diária por Mês (Not Stacked anymore, individual bars per product + total avg)
+            // 2. Aplicação Média Diária por Mês
             const allProducts = [...new Set(filteredData.map(r => r.Produto))].filter(Boolean);
+            const colors = ['#16a34a', '#2563eb', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#4f46e5'];
+            
             const productDatasets = allProducts.map((pName, idx) => {
-                const colors = ['#16a34a', '#2563eb', '#d97706', '#9333ea', '#dc2626', '#0d9488', '#ea580c', '#4f46e5'];
                 return {
                     label: pName,
                     data: sortedMonths.map(m => {
@@ -793,13 +896,13 @@
             productDatasets.push({
                 label: 'Média Diária (TOTAL)',
                 data: monthlyAvgTotal,
-                backgroundColor: '#475569', // Dark Slate for Total
+                backgroundColor: '#334155',
                 borderRadius: 4
             });
             
             renderAplicacaoDiariaChart(monthLabels, productDatasets);
 
-            // Grouping Comparativo
+            // 3 & 4. Comparativo
             const weeksData = {}, meioData = {};
             filteredData.forEach(r => {
                 if (r.Semana !== 'N/A') weeksData[r.Semana] = (weeksData[r.Semana] || 0) + r.Kg;
@@ -809,7 +912,7 @@
             renderSemanaChart(weeksData);
             renderMeioChart(meioData);
             
-            // Analytics Tab
+            // 5 & 6. Analytics
             renderSetorChart();
             renderAplicadorChart();
         }
@@ -837,7 +940,6 @@
             if(!ctx) return;
             if (chartAplicMesInst) chartAplicMesInst.destroy();
             
-            // Removed stacked config to allow individual bars side-by-side
             chartAplicMesInst = new Chart(ctx.getContext('2d'), {
                 type: 'bar',
                 data: { labels: labels, datasets: datasets },
@@ -871,15 +973,15 @@
             const data = sortedKeys.map(k => dataObj[k]);
 
             chartSemanaInst = new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: { labels: labels, datasets: [{ label: 'Total (kg)', data: data, borderColor: '#0284c7', backgroundColor: '#e0f2fe', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#0284c7' }] },
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: 'Total (kg)', data: data, backgroundColor: '#0284c7', borderRadius: 6 }] },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: { 
                         legend: { display: false },
-                        datalabels: { anchor: 'end', align: 'top', font: { size: 10, weight: 'bold' }, formatter: v => v.toLocaleString('pt-BR') }
+                        datalabels: { anchor: 'end', align: 'top', font: { size: 11, weight: 'bold' }, formatter: v => `${v.toLocaleString('pt-BR')} kg` }
                     },
-                    scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
+                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
                 }
             });
         }
@@ -896,7 +998,7 @@
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'right' },
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
                         datalabels: { color: '#fff', font: { weight: 'bold', size: 12 }, formatter: (val, ctx) => {
                             const sum = ctx.dataset.data.reduce((a,b) => a+b,0);
                             return sum > 0 ? ((val*100)/sum).toFixed(1) + '%' : '';
@@ -917,7 +1019,7 @@
                 options: { 
                     responsive: true, maintainAspectRatio: false, 
                     plugins: { 
-                        legend: { position: 'right' }, 
+                        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }, 
                         datalabels: { 
                             display: true, color: '#fff', font: { weight: 'bold', size: 11 },
                             formatter: (val, ctx) => {
@@ -996,7 +1098,7 @@
                 tr.className = idx % 2 === 0 ? 'bg-white hover:bg-slate-50 transition' : 'bg-slate-50/50 hover:bg-slate-100/60 transition';
                 tr.innerHTML = `
                     <td class="p-3.5 whitespace-nowrap font-medium text-slate-800">${row.Data}</td>
-                    <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 bg-slate-100 rounded text-slate-600">Sem ${row.Semana}</span></td>
+                    <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-medium">Sem ${row.Semana}</span></td>
                     <td class="p-3.5 whitespace-nowrap"><span class="font-semibold text-agri-800">${row.Setor}</span></td>
                     <td class="p-3.5 whitespace-nowrap"><span class="px-2 py-1 bg-agri-50 text-agri-700 font-medium rounded-lg border border-agri-100">${row.Produto}</span></td>
                     <td class="p-3.5 whitespace-nowrap font-bold text-slate-800 text-right">${row.Kg.toLocaleString('pt-BR')} kg</td>
@@ -1016,14 +1118,14 @@
         }
 
         function exportTableToCSV() {
-            if (!filteredData.length) return alert('Nenhum dado disponível.');
+            if (!filteredData.length) return alert('Nenhum dado disponível para exportação.');
             const headers = ['Data', 'Semana', 'Setor', 'Produto', 'Kg', 'Variedade', 'Meio da aplicacao', 'Inicio', 'Fim', 'Colaboradores', 'Aplicador'];
             let csv = 'data:text/csv;charset=utf-8,\uFEFF' + headers.join(';') + '\n';
             filteredData.forEach(r => {
                 csv += [r.Data, r.Semana, r.Setor, r.Produto, r.Kg, r.Variedade, r.MeioAplicacao, r.Inicio, r.Fim, r.Colaboradores, r.Aplicador].map(e => `"${e}"`).join(';') + '\n';
             });
             const a = document.createElement('a'); a.href = encodeURI(csv);
-            a.download = `adubacao_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `adubacao_registros_${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
 
@@ -1043,14 +1145,12 @@
                 }
             });
 
-            // Resizing charts on layout changes to keep proportions
             const res = (inst) => { if(inst) inst.resize(); };
             if (tabName === 'daily') { res(chartAdubTotalMesInst); res(chartAplicMesInst); }
             if (tabName === 'comparative') { res(chartSemanaInst); res(chartMeioInst); }
             if (tabName === 'analytics') { res(chartSetorInst); res(chartAplicadorInst); }
         }
 
-        // --- EXPORT ENGINE (PDF & JPEG) ---
         function openExportModal() {
             document.getElementById('exportModal').classList.remove('hidden');
         }
@@ -1074,105 +1174,112 @@
 
             if (!wantDaily && !wantComp && !wantAnalyt) {
                 alert("Selecione pelo menos uma área para exportar.");
-                closeExportModal();
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Gerar e Baixar';
+                btn.disabled = false;
                 return;
             }
 
-            // Save state
-            const originalTab = document.querySelector('.tab-content.active').id.replace('tabContent-', '');
             const mainEl = document.getElementById('mainContainer');
-            
-            // Temporary hide elements not needed in report
-            document.getElementById('mainHeader').style.display = 'none';
-            document.getElementById('filterBar').style.display = 'none';
-            
-            // FORCE WIDE DESKTOP LAYOUT (1280px) to prevent squished mobile charts in the export
-            const origMaxWidth = mainEl.style.maxWidth;
-            const origWidth = mainEl.style.width;
-            
-            mainEl.style.maxWidth = '1280px';
-            mainEl.style.width = '1280px';
-            
-            // Show only requested sections temporarily
-            document.getElementById('tabContent-daily').style.display = wantDaily ? 'block' : 'none';
-            document.getElementById('tabContent-comparative').style.display = wantComp ? 'block' : 'none';
-            document.getElementById('tabContent-analytics').style.display = wantAnalyt ? 'block' : 'none';
-            document.getElementById('tabContent-table').style.display = 'none';
+            const headerEl = document.getElementById('mainHeader');
+            const filterEl = document.getElementById('filterBar');
 
-            // Add Title dynamically to the report body
+            const origHeaderDisplay = headerEl.style.display;
+            const origFilterDisplay = filterEl.style.display;
+            const origWidth = mainEl.style.width;
+            const origMaxWidth = mainEl.style.maxWidth;
+
+            headerEl.style.display = 'none';
+            filterEl.style.display = 'none';
+
+            mainEl.style.width = '1200px';
+            mainEl.style.maxWidth = '1200px';
+
+            const dailyEl = document.getElementById('tabContent-daily');
+            const compEl = document.getElementById('tabContent-comparative');
+            const tableEl = document.getElementById('tabContent-table');
+            const analytEl = document.getElementById('tabContent-analytics');
+
+            dailyEl.style.display = wantDaily ? 'block' : 'none';
+            compEl.style.display = wantComp ? 'block' : 'none';
+            tableEl.style.display = 'none';
+            analytEl.style.display = wantAnalyt ? 'block' : 'none';
+
             const reportTitle = document.createElement('div');
             reportTitle.id = 'reportTempTitle';
+            reportTitle.className = 'bg-white p-6 rounded-2xl border border-slate-200 mb-6 flex items-center justify-between shadow-sm';
             reportTitle.innerHTML = `
-                <div style="display:flex; align-items:center; gap:16px; margin-bottom: 24px; padding-bottom:16px; border-bottom: 2px solid #e2e8f0;">
-                    <img src="https://i.imgur.com/GZPcOWg.png" style="height:48px;">
+                <div class="flex items-center gap-4">
+                    <img src="https://i.imgur.com/GZPcOWg.png" class="h-12 w-auto object-contain">
                     <div>
-                        <h1 style="font-size:24px; font-weight:bold; color:#1e293b; margin:0;">Relatório Analítico de Adubação</h1>
-                        <p style="font-size:14px; color:#64748b; margin:4px 0 0 0;">Gerado em: ${new Date().toLocaleString('pt-BR')} | Filtros Ativos Aplicados</p>
+                        <h1 class="text-xl font-bold text-slate-800">Relatório de Controle de Adubação</h1>
+                        <p class="text-xs text-slate-500 mt-1">Gerado em: ${new Date().toLocaleString('pt-BR')} | Filtros Aplicados</p>
                     </div>
+                </div>
+                <div class="text-right text-xs text-slate-400 font-medium">
+                    Sistema de Monitoramento Agrícola
                 </div>
             `;
             mainEl.insertBefore(reportTitle, mainEl.firstChild);
 
-            // Force resize all charts to adapt to 1280px layout correctly
-            Object.values(Chart.instances).forEach(chart => chart.resize());
+            Object.values(Chart.instances).forEach(c => c.resize());
 
-            // Await brief moment for canvas painting
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 450));
 
             try {
-                // Capture the entire main element
                 const canvas = await html2canvas(mainEl, {
-                    scale: 2, // High resolution
+                    scale: 2,
                     useCORS: true,
-                    backgroundColor: '#f8fafc', // match slate-50
-                    windowWidth: 1280 // force specific capture window width
+                    backgroundColor: '#f8fafc',
+                    logging: false
                 });
 
                 if (format === 'jpeg') {
                     const link = document.createElement('a');
-                    link.download = `Relatorio_Adubacao_${new Date().getTime()}.jpg`;
+                    link.download = `Relatorio_Adubacao_${new Date().toISOString().slice(0,10)}.jpg`;
                     link.href = canvas.toDataURL('image/jpeg', 0.95);
                     link.click();
                 } else {
-                    // PDF Generation
-                    // We construct a custom sized portrait PDF that matches exactly the ratio of our 1280px container
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+
                     const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    
-                    // jsPDF expects dimensions in exact points/pixels
-                    // We scale the canvas down by 2 (because we used scale: 2 for high-res capture)
-                    const pdfWidth = canvas.width / 2;
-                    const pdfHeight = canvas.height / 2;
+                    const imgWidth = pageWidth;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                    const pdf = new jspdf.jsPDF({
-                        orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
-                        unit: 'px',
-                        format: [pdfWidth, pdfHeight]
-                    });
+                    let heightLeft = imgHeight;
+                    let position = 0;
 
-                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                    pdf.save(`Relatorio_Adubacao_${new Date().getTime()}.pdf`);
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+
+                    while (heightLeft > 0) {
+                        position -= pageHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+
+                    pdf.save(`Relatorio_Adubacao_${new Date().toISOString().slice(0,10)}.pdf`);
                 }
             } catch (err) {
                 console.error("Export Error:", err);
-                alert("Houve um erro ao gerar a exportação. Tente novamente.");
+                alert("Erro ao exportar o relatório. Por favor, tente novamente.");
             } finally {
-                // Restore original UI
-                document.getElementById('reportTempTitle').remove();
-                document.getElementById('mainHeader').style.display = '';
-                document.getElementById('filterBar').style.display = '';
-                
-                mainEl.style.maxWidth = origMaxWidth;
+                if (document.getElementById('reportTempTitle')) {
+                    document.getElementById('reportTempTitle').remove();
+                }
+                headerEl.style.display = origHeaderDisplay;
+                filterEl.style.display = origFilterDisplay;
                 mainEl.style.width = origWidth;
+                mainEl.style.maxWidth = origMaxWidth;
 
-                // Restore tabs
-                ['daily', 'comparative', 'table', 'analytics'].forEach(t => {
-                    document.getElementById(`tabContent-${t}`).style.display = '';
-                });
-                switchTab(originalTab);
-                
-                // Force charts to fit back into original screen layout
-                Object.values(Chart.instances).forEach(chart => chart.resize());
-                
+                const currentActive = document.querySelector('.tab-btn.bg-agri-600')?.id.replace('tabBtn-', '') || 'daily';
+                switchTab(currentActive);
+
+                Object.values(Chart.instances).forEach(c => c.resize());
+
                 closeExportModal();
             }
         }
