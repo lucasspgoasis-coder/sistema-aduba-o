@@ -357,7 +357,7 @@
                         <i class="fa-solid fa-filter mr-1"></i> Responde aos filtros globais
                     </div>
                 </div>
-                <div class="h-[450px] w-full"> <!-- Altura maior para acomodar gráfico horizontal -->
+                <div class="h-[600px] w-full"> <!-- Altura expandida para acomodar melhor os rótulos -->
                     <canvas id="chartProdutoSetor"></canvas>
                 </div>
             </div>
@@ -1079,12 +1079,15 @@
                         },
                         datalabels: {
                             anchor: 'center', align: 'center',
-                            font: { size: 9, weight: 'bold' }, color: '#fff',
+                            color: '#1e293b', // Texto escuro para contraste
+                            backgroundColor: 'rgba(255, 255, 255, 0.85)', // Fundo claro tipo 'tag'
+                            borderRadius: 4,
+                            padding: { top: 2, bottom: 2, left: 4, right: 4 },
+                            font: { size: 10, weight: 'bold' },
                             formatter: (val) => val > 0 ? val.toLocaleString('pt-BR', {maximumFractionDigits:0}) : '',
                             display: function(context) { 
-                                // Não mostra número se o pedaço do gráfico for muito pequeno
-                                let max = Math.max(...context.chart.data.datasets.flatMap(d => d.data));
-                                return (context.dataset.data[context.dataIndex] > (max * 0.05)); 
+                                // Retorna true para TODOS os valores maiores que zero
+                                return context.dataset.data[context.dataIndex] > 0; 
                             }
                         }
                     },
