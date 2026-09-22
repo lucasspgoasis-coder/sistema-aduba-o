@@ -227,14 +227,14 @@
             </div>
 
             <!-- Charts Row 1 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="flex flex-col space-y-6">
                 <!-- Chart 1: Total por Mês -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                     <div class="mb-4">
                         <h3 class="font-bold text-slate-800 text-base">Adubação Total por Mês (Kg)</h3>
                         <p class="text-xs text-slate-400">Soma acumulada de adubo aplicado mensalmente</p>
                     </div>
-                    <div class="h-72 w-full">
+                    <div class="h-96 sm:h-[420px] w-full">
                         <canvas id="chartMes"></canvas>
                     </div>
                 </div>
@@ -245,7 +245,7 @@
                         <h3 class="font-bold text-slate-800 text-base">Aplicação por Produto ao Mês (Kg)</h3>
                         <p class="text-xs text-slate-400">Distribuição individual de cada fertilizante ao longo dos meses</p>
                     </div>
-                    <div class="h-72 w-full">
+                    <div class="h-96 sm:h-[420px] w-full">
                         <canvas id="chartProdMes"></canvas>
                     </div>
                 </div>
@@ -254,14 +254,14 @@
 
         <!-- TAB 2: COMPARATIVO -->
         <div id="tab-comparativo" class="tab-content space-y-6 hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="flex flex-col space-y-6">
                 <!-- Chart 3: Semanal -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div class="mb-4">
                         <h3 class="font-bold text-slate-800 text-base">Total Aplicado por Semana (Kg)</h3>
                         <p class="text-xs text-slate-400">Comparativo quinzenal e semanal de volume de adubação</p>
                     </div>
-                    <div class="h-72 w-full">
+                    <div class="h-96 sm:h-[420px] w-full">
                         <canvas id="chartSemana"></canvas>
                     </div>
                 </div>
@@ -272,7 +272,7 @@
                         <h3 class="font-bold text-slate-800 text-base">Distribuição por Setor (%)</h3>
                         <p class="text-xs text-slate-400">Porcentagem do adubo total alocado por setor agrícola</p>
                     </div>
-                    <div class="h-72 w-full flex items-center justify-center">
+                    <div class="h-96 sm:h-[420px] w-full flex items-center justify-center">
                         <canvas id="chartSetor"></canvas>
                     </div>
                 </div>
@@ -283,7 +283,7 @@
                         <h3 class="font-bold text-slate-800 text-base">Participação por Aplicador (%)</h3>
                         <p class="text-xs text-slate-400">Proporção de adubação executada por cada operador</p>
                     </div>
-                    <div class="h-72 w-full">
+                    <div class="h-96 sm:h-[420px] w-full">
                         <canvas id="chartAplicador"></canvas>
                     </div>
                 </div>
@@ -294,7 +294,7 @@
                         <h3 class="font-bold text-slate-800 text-base">Total por Meio de Aplicação (Kg)</h3>
                         <p class="text-xs text-slate-400">Volume aplicado categorizado por método (Manual, Trator, Fertirrigação)</p>
                     </div>
-                    <div class="h-72 w-full">
+                    <div class="h-96 sm:h-[420px] w-full">
                         <canvas id="chartMeio"></canvas>
                     </div>
                 </div>
