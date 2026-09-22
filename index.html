@@ -166,6 +166,10 @@
                 <button onclick="switchTab('tab-comparativo')" id="btn-tab-comparativo" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 py-4 px-2 sm:px-4 text-sm font-medium whitespace-nowrap transition-colors">
                     <i class="fa-solid fa-scale-balanced mr-2"></i> Comparativo
                 </button>
+                <!-- NOVA ABA: Produtos -->
+                <button onclick="switchTab('tab-produtos')" id="btn-tab-produtos" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 py-4 px-2 sm:px-4 text-sm font-medium whitespace-nowrap transition-colors">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i> Produtos por Bloco
+                </button>
                 <button onclick="switchTab('tab-registros')" id="btn-tab-registros" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 py-4 px-2 sm:px-4 text-sm font-medium whitespace-nowrap transition-colors">
                     <i class="fa-solid fa-table-list mr-2"></i> Registros Brutos
                 </button>
@@ -297,7 +301,69 @@
             </div>
         </div>
 
-        <!-- TAB 3: REGISTROS BRUTOS -->
+        <!-- TAB 3: PRODUTOS POR SETOR (NOVA) -->
+        <div id="tab-produtos" class="tab-content space-y-6 hidden">
+            <!-- KPIs Específicos de Produtos -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total de Produtos Utilizados</p>
+                        <h3 class="text-2xl font-bold text-violet-600 mt-1" id="kpiTotalProdutos">0</h3>
+                    </div>
+                    <div class="p-3 bg-violet-50 text-violet-600 rounded-xl">
+                        <i class="fa-solid fa-flask text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Média de Kg / Produto</p>
+                        <h3 class="text-2xl font-bold text-teal-600 mt-1" id="kpiMediaKgProduto">0 kg</h3>
+                    </div>
+                    <div class="p-3 bg-teal-50 text-teal-600 rounded-xl">
+                        <i class="fa-solid fa-scale-unbalanced text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div class="overflow-hidden mr-2">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Bloco de Maior Consumo</p>
+                        <h3 class="text-xl font-bold text-rose-600 mt-1 truncate" id="kpiSetorTop">-</h3>
+                    </div>
+                    <div class="p-3 bg-rose-50 text-rose-600 rounded-xl shrink-0">
+                        <i class="fa-solid fa-map-pin text-xl"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div class="overflow-hidden mr-2">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Produto Mais Exigido</p>
+                        <h3 class="text-lg font-bold text-fuchsia-600 mt-1 truncate" id="kpiProdExigido">-</h3>
+                    </div>
+                    <div class="p-3 bg-fuchsia-50 text-fuchsia-600 rounded-xl shrink-0">
+                        <i class="fa-solid fa-fire text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico Horizontal: Produto por Bloco -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                <div class="mb-4 flex justify-between items-start">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">Total Aplicado por Produto Detalhado por Bloco (Kg)</h3>
+                        <p class="text-xs text-slate-400">Distribuição visual quantitativa de cada fertilizante dentro dos setores selecionados.</p>
+                    </div>
+                    <div class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-medium border border-emerald-200">
+                        <i class="fa-solid fa-filter mr-1"></i> Responde aos filtros globais
+                    </div>
+                </div>
+                <div class="h-[450px] w-full"> <!-- Altura maior para acomodar gráfico horizontal -->
+                    <canvas id="chartProdutoSetor"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: REGISTROS BRUTOS -->
         <div id="tab-registros" class="tab-content space-y-4 hidden">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
@@ -370,7 +436,7 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">2. Selecione os Gráficos & Dados</label>
                         <button onclick="toggleAllExportItems(true)" class="text-xs text-emerald-600 font-medium hover:underline">Selecionar Todos</button>
                     </div>
-                    <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 text-sm">
+                    <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 text-sm max-h-48 overflow-y-auto">
                         <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-medium">
                             <input type="checkbox" id="expKpis" checked class="rounded text-emerald-600 focus:ring-emerald-500">
                             <span><i class="fa-solid fa-chart-line text-emerald-600 mr-1.5"></i> Indicadores Gerais (KPIs)</span>
@@ -383,6 +449,10 @@
                         <label class="flex items-center gap-2 cursor-pointer text-slate-700">
                             <input type="checkbox" id="expChartProdMes" checked class="rounded text-emerald-600 focus:ring-emerald-500">
                             <span>Aplicação por Produto ao Mês (Kg)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="expChartProdutoSetor" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>Total por Produto em cada Bloco (Horizontal)</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-slate-700">
                             <input type="checkbox" id="expChartSemana" checked class="rounded text-emerald-600 focus:ring-emerald-500">
@@ -410,7 +480,7 @@
 
                 <p class="text-xs text-slate-500 flex items-center gap-1.5 bg-amber-50 text-amber-800 p-2.5 rounded-lg border border-amber-200">
                     <i class="fa-solid fa-circle-info text-amber-600"></i>
-                    Proporção Retrato (1280px) pré-formatada para visualização perfeita dos dados sem cortes.
+                    Proporção Retrato (1280px) pré-formatada para visualização perfeita dos dados.
                 </p>
             </div>
 
@@ -497,7 +567,8 @@
         // Color palette for charts
         const colorPalette = [
             '#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', 
-            '#14B8A6', '#F43F5E', '#84CC16', '#06B6D4', '#6366F1'
+            '#14B8A6', '#F43F5E', '#84CC16', '#06B6D4', '#6366F1',
+            '#8B5CF6', '#F97316', '#0EA5E9', '#D946EF', '#22C55E'
         ];
 
         // Safe DOM helper functions
@@ -760,10 +831,12 @@
                 mesProduto: {},
                 semanas: {},
                 meios: {},
-                aplicadores: {}
+                aplicadores: {},
+                produtoSetor: {} // Novo rastreamento Produto x Setor
             };
 
             let allProductsSet = new Set();
+            let allSetoresSet = new Set();
             let tableHTML = "";
 
             data.forEach(row => {
@@ -787,6 +860,7 @@
                 let aplicador = r['Aplicador'] ? r['Aplicador'].trim() : "ND";
 
                 allProductsSet.add(prod);
+                allSetoresSet.add(setor);
 
                 stats.setores[setor] = (stats.setores[setor] || 0) + kg;
                 stats.produtos[prod] = (stats.produtos[prod] || 0) + kg;
@@ -797,6 +871,10 @@
 
                 if (!stats.mesProduto[mesAno]) stats.mesProduto[mesAno] = {};
                 stats.mesProduto[mesAno][prod] = (stats.mesProduto[mesAno][prod] || 0) + kg;
+
+                // Preenchendo Matriz Produto x Setor
+                if (!stats.produtoSetor[prod]) stats.produtoSetor[prod] = {};
+                stats.produtoSetor[prod][setor] = (stats.produtoSetor[prod][setor] || 0) + kg;
 
                 tableHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
@@ -813,7 +891,7 @@
                 `;
             });
 
-            // Update KPIs with safe checks
+            // --- Update KPIs ABA DIÁRIO ---
             setElemText('kpiTotalKg', totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " kg");
 
             let mediaTempo = timeEntriesCount > 0 ? (totalMinutes / timeEntriesCount) : 0;
@@ -831,6 +909,20 @@
             if (kpiProdElem) kpiProdElem.title = maxProd;
             setElemText('kpiProdutoKg', maxKg.toLocaleString('pt-BR') + " kg");
 
+            // --- Update KPIs ABA PRODUTOS (Nova Aba) ---
+            let numProdutosUnicos = Object.keys(stats.produtos).length;
+            setElemText('kpiTotalProdutos', numProdutosUnicos);
+            
+            let mediaKgProd = numProdutosUnicos > 0 ? (totalKg / numProdutosUnicos) : 0;
+            setElemText('kpiMediaKgProduto', mediaKgProd.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " kg");
+
+            let maxSetor = "-", maxKgSetor = 0;
+            for(let s in stats.setores) {
+                if(stats.setores[s] > maxKgSetor) { maxKgSetor = stats.setores[s]; maxSetor = s; }
+            }
+            setElemText('kpiSetorTop', maxSetor);
+            setElemText('kpiProdExigido', maxProd); // Reutilizando cálculo do produto que mais aparece
+
             // Fill Table
             setElemHTML('tableBody', tableHTML);
             setElemText('tableCount', `${data.length} registros encontrados`);
@@ -840,9 +932,12 @@
             
             renderBarChart('chartMes', 'Total (Kg)', Object.keys(stats.meses), Object.values(stats.meses), colorPalette[0]);
             renderGroupedBarChart(stats.mesProduto, Array.from(allProductsSet), sortedMeses);
+            
+            // Render Novo Gráfico Horizontal
+            renderHorizontalStackedBarChart('chartProdutoSetor', stats.produtoSetor, Array.from(allProductsSet).sort(), Array.from(allSetoresSet).sort());
+
             renderBarChart('chartSemana', 'Total (Kg)', Object.keys(stats.semanas), Object.values(stats.semanas), colorPalette[1]);
             renderBarChart('chartMeio', 'Total (Kg)', Object.keys(stats.meios), Object.values(stats.meios), colorPalette[2]);
-
             renderDoughnutChart('chartSetor', stats.setores, totalKg);
             renderPercentageBarChart('chartAplicador', stats.aplicadores, totalKg);
         }
@@ -935,6 +1030,68 @@
                         y: { stacked: false, beginAtZero: true, grid: { color: '#f1f5f9' } }
                     },
                     layout: { padding: { top: 20 } }
+                }
+            });
+        }
+
+        // NOVO: Gráfico Horizontal Agrupado/Empilhado Produto por Setor
+        function renderHorizontalStackedBarChart(canvasId, produtoSetorMap, allProducts, allSetores) {
+            destroyChart(canvasId);
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let datasets = [];
+            
+            allSetores.forEach((setor, index) => {
+                let data = [];
+                allProducts.forEach(prod => {
+                    data.push((produtoSetorMap[prod] && produtoSetorMap[prod][setor]) ? produtoSetorMap[prod][setor] : 0);
+                });
+
+                datasets.push({
+                    label: setor,
+                    data: data,
+                    backgroundColor: colorPalette[index % colorPalette.length] + 'DD',
+                    borderColor: colorPalette[index % colorPalette.length],
+                    borderWidth: 1
+                });
+            });
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: allProducts,
+                    datasets: datasets
+                },
+                options: {
+                    indexAxis: 'y', // Define como barras horizontais
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 10} } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('pt-BR')} kg`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'center', align: 'center',
+                            font: { size: 9, weight: 'bold' }, color: '#fff',
+                            formatter: (val) => val > 0 ? val.toLocaleString('pt-BR', {maximumFractionDigits:0}) : '',
+                            display: function(context) { 
+                                // Não mostra número se o pedaço do gráfico for muito pequeno
+                                let max = Math.max(...context.chart.data.datasets.flatMap(d => d.data));
+                                return (context.dataset.data[context.dataIndex] > (max * 0.05)); 
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true, beginAtZero: true, grid: { color: '#f1f5f9' } },
+                        y: { stacked: true, grid: { display: false } }
+                    }
                 }
             });
         }
@@ -1048,7 +1205,7 @@
         }
 
         function toggleAllExportItems(status) {
-            ['expKpis', 'expChartMes', 'expChartProdMes', 'expChartSemana', 'expChartSetor', 'expChartAplicador', 'expChartMeio', 'expTable'].forEach(id => {
+            ['expKpis', 'expChartMes', 'expChartProdMes', 'expChartProdutoSetor', 'expChartSemana', 'expChartSetor', 'expChartAplicador', 'expChartMeio', 'expTable'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.checked = status;
             });
@@ -1087,6 +1244,7 @@
                 const chartMap = [
                     { id: 'expChartMes', sourceId: 'chartMes', title: 'Adubação Total por Mês (Kg)' },
                     { id: 'expChartProdMes', sourceId: 'chartProdMes', title: 'Aplicação por Produto ao Mês (Kg)' },
+                    { id: 'expChartProdutoSetor', sourceId: 'chartProdutoSetor', title: 'Total por Produto em cada Bloco' },
                     { id: 'expChartSemana', sourceId: 'chartSemana', title: 'Total Aplicado por Semana (Kg)' },
                     { id: 'expChartSetor', sourceId: 'chartSetor', title: 'Distribuição por Setor (%)' },
                     { id: 'expChartAplicador', sourceId: 'chartAplicador', title: 'Participação por Aplicador (%)' },
@@ -1102,9 +1260,14 @@
 
                         const img = document.createElement('img');
                         img.src = chartInstances[item.sourceId].toBase64Image();
-                        img.className = 'w-full h-auto max-h-64 object-contain rounded';
-                        chartCard.appendChild(img);
+                        // Ajuste para o gráfico horizontal poder ser maior na exportação
+                        img.className = item.sourceId === 'chartProdutoSetor' ? 'w-full h-auto max-h-96 object-contain rounded' : 'w-full h-auto max-h-64 object-contain rounded';
+                        
+                        if(item.sourceId === 'chartProdutoSetor') {
+                            chartCard.classList.add('col-span-2'); // Faz o gráfico horizontal ocupar as 2 colunas
+                        }
 
+                        chartCard.appendChild(img);
                         chartsGrid.appendChild(chartCard);
                     }
                 });
