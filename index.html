@@ -10,6 +10,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- HTML2Canvas & jsPDF for JPEG/PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -23,7 +26,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Custom Scrollbar for the table */
+        /* Custom Scrollbar */
         .table-container::-webkit-scrollbar { width: 8px; height: 8px; }
         .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -36,38 +39,124 @@
         }
     </style>
 </head>
-<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="text-slate-800 antialiased min-h-screen flex flex-col relative">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex flex-col items-center justify-center transition-opacity duration-300">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-3">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+            <p class="text-sm font-semibold text-slate-700">Carregando dados da planilha...</p>
+        </div>
+    </div>
 
     <!-- Navbar -->
     <nav class="bg-emerald-700 text-white shadow-md z-10 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row items-center justify-between py-3 md:h-16 gap-4">
                 <div class="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
-                    <i class="fa-solid fa-seedling text-2xl text-emerald-300"></i>
+                    <img src="https://i.imgur.com/GZPcOWg.png" alt="Logo AgroControl" class="h-10 w-auto object-contain bg-transparent border-0 outline-none p-0 select-none">
                     <span class="font-bold text-xl tracking-tight">AgroControl</span>
                 </div>
                 
-                <!-- Global Date Filter -->
-                <div class="flex items-center bg-emerald-800 rounded-lg p-1.5 shadow-inner w-full md:w-auto justify-center">
-                    <div class="flex items-center px-2">
-                        <i class="fa-regular fa-calendar text-emerald-300 mr-2 text-sm"></i>
-                        <span class="text-xs font-medium text-emerald-200 uppercase tracking-wider mr-2">Período:</span>
-                    </div>
-                    <input type="date" id="dateStart" class="bg-white text-gray-800 text-sm rounded px-2 py-1 outline-none focus:ring-2 focus:ring-emerald-400">
-                    <span class="mx-2 text-emerald-300">até</span>
-                    <input type="date" id="dateEnd" class="bg-white text-gray-800 text-sm rounded px-2 py-1 outline-none focus:ring-2 focus:ring-emerald-400">
-                    <button onclick="applyFilters()" class="ml-3 bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1 rounded text-sm font-medium transition-colors shadow-sm">
-                        Filtrar
-                    </button>
-                    <button onclick="clearFilters()" class="ml-2 text-emerald-200 hover:text-white transition-colors" title="Limpar Filtros">
-                        <i class="fa-solid fa-xmark"></i>
+                <!-- Navbar Actions & Export -->
+                <div class="flex items-center gap-3">
+                    <button onclick="openExportModal()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-3.5 py-1.5 rounded-lg text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-105">
+                        <i class="fa-solid fa-file-arrow-down text-slate-800"></i>
+                        <span>Baixar Relatório</span>
                     </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Sub-navigation / Tabs -->
+    <!-- Global Multi-select Filter Toolbar -->
+    <div class="bg-emerald-800 text-white border-b border-emerald-900/40 py-2.5 px-4 shadow-inner">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+            
+            <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+                <!-- Date Filter -->
+                <div class="flex items-center bg-emerald-900/60 rounded-lg px-2.5 py-1 border border-emerald-600/40">
+                    <i class="fa-regular fa-calendar text-emerald-300 mr-1.5"></i>
+                    <span class="font-medium text-emerald-200 mr-1.5">Período:</span>
+                    <input type="date" id="dateStart" onchange="applyFilters()" class="bg-white text-gray-800 text-xs rounded px-1.5 py-0.5 outline-none">
+                    <span class="mx-1 text-emerald-300">até</span>
+                    <input type="date" id="dateEnd" onchange="applyFilters()" class="bg-white text-gray-800 text-xs rounded px-1.5 py-0.5 outline-none">
+                </div>
+
+                <!-- Multi-select Setor -->
+                <div class="relative inline-block" id="dropdownSetorContainer">
+                    <button onclick="toggleDropdown('dropdownSetor')" class="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-600/40 flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-emerald-300"></i>
+                        <span id="labelSetores">Setores (Todos)</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-emerald-300"></i>
+                    </button>
+                    <div id="dropdownSetor" class="hidden absolute top-full left-0 mt-1 w-56 bg-white text-slate-800 rounded-lg shadow-xl border border-slate-200 p-2 z-50 max-h-60 overflow-y-auto">
+                        <div class="p-1 font-semibold text-xs border-b border-slate-100 text-slate-500 mb-1 flex justify-between">
+                            <span>Selecionar Setores</span>
+                            <button onclick="clearSelect('setores')" class="text-emerald-600 hover:underline">Limpar</button>
+                        </div>
+                        <div id="optionsSetor" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- Multi-select Produto -->
+                <div class="relative inline-block" id="dropdownProdutoContainer">
+                    <button onclick="toggleDropdown('dropdownProduto')" class="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-600/40 flex items-center gap-2">
+                        <i class="fa-solid fa-flask text-emerald-300"></i>
+                        <span id="labelProdutos">Produtos (Todos)</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-emerald-300"></i>
+                    </button>
+                    <div id="dropdownProduto" class="hidden absolute top-full left-0 mt-1 w-56 bg-white text-slate-800 rounded-lg shadow-xl border border-slate-200 p-2 z-50 max-h-60 overflow-y-auto">
+                        <div class="p-1 font-semibold text-xs border-b border-slate-100 text-slate-500 mb-1 flex justify-between">
+                            <span>Selecionar Produtos</span>
+                            <button onclick="clearSelect('produtos')" class="text-emerald-600 hover:underline">Limpar</button>
+                        </div>
+                        <div id="optionsProduto" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- Multi-select Aplicador -->
+                <div class="relative inline-block" id="dropdownAplicadorContainer">
+                    <button onclick="toggleDropdown('dropdownAplicador')" class="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-600/40 flex items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-emerald-300"></i>
+                        <span id="labelAplicadores">Aplicadores (Todos)</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-emerald-300"></i>
+                    </button>
+                    <div id="dropdownAplicador" class="hidden absolute top-full left-0 mt-1 w-56 bg-white text-slate-800 rounded-lg shadow-xl border border-slate-200 p-2 z-50 max-h-60 overflow-y-auto">
+                        <div class="p-1 font-semibold text-xs border-b border-slate-100 text-slate-500 mb-1 flex justify-between">
+                            <span>Selecionar Aplicadores</span>
+                            <button onclick="clearSelect('aplicadores')" class="text-emerald-600 hover:underline">Limpar</button>
+                        </div>
+                        <div id="optionsAplicador" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- Multi-select Meio de Aplicação -->
+                <div class="relative inline-block" id="dropdownMeioContainer">
+                    <button onclick="toggleDropdown('dropdownMeio')" class="bg-emerald-900/60 hover:bg-emerald-900 text-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-600/40 flex items-center gap-2">
+                        <i class="fa-solid fa-tractor text-emerald-300"></i>
+                        <span id="labelMeios">Meio (Todos)</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-emerald-300"></i>
+                    </button>
+                    <div id="dropdownMeio" class="hidden absolute top-full left-0 mt-1 w-56 bg-white text-slate-800 rounded-lg shadow-xl border border-slate-200 p-2 z-50 max-h-60 overflow-y-auto">
+                        <div class="p-1 font-semibold text-xs border-b border-slate-100 text-slate-500 mb-1 flex justify-between">
+                            <span>Selecionar Meio</span>
+                            <button onclick="clearSelect('meios')" class="text-emerald-600 hover:underline">Limpar</button>
+                        </div>
+                        <div id="optionsMeio" class="space-y-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="clearFilters()" class="text-xs bg-emerald-900 hover:bg-emerald-950 text-emerald-200 hover:text-white px-3 py-1.5 rounded-lg transition-colors border border-emerald-700/50 flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left"></i> Limpar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-navigation / Tabs Header -->
     <div class="bg-white border-b shadow-sm z-0 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex space-x-1 sm:space-x-8 -mb-px overflow-x-auto">
@@ -84,178 +173,314 @@
         </div>
     </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative">
+    <!-- MAIN CONTENT AREA -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
         
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="absolute inset-0 bg-slate-50 bg-opacity-90 z-50 flex flex-col items-center justify-center rounded-xl min-h-[50vh]">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
-            <h2 class="text-center text-gray-700 text-xl font-semibold">Sincronizando dados...</h2>
-            <p class="text-center text-gray-500 mt-2">Buscando informações da planilha via satélite 🛰️</p>
-        </div>
-
-        <!-- ABA 1: Dados Diários -->
-        <div id="tab-diario" class="tab-content block">
-            <div class="mb-6 flex justify-between items-end">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Visão Geral Diária</h1>
-                    <p class="text-gray-500 text-sm mt-1">Métricas consolidadas do período selecionado.</p>
-                </div>
-            </div>
-
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-                <!-- Total Aplicado -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center transform transition-transform hover:-translate-y-1">
-                    <div class="p-3 rounded-full bg-emerald-100 text-emerald-600 mr-4">
-                        <i class="fa-solid fa-weight-scale text-xl"></i>
-                    </div>
+        <!-- TAB 1: DADOS DIÁRIOS -->
+        <div id="tab-diario" class="tab-content space-y-6">
+            <!-- KPI Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Aplicado</p>
-                        <p class="text-2xl font-bold text-gray-900" id="kpiTotalKg">0.00 kg</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Aplicado</p>
+                        <h3 class="text-2xl font-bold text-emerald-600 mt-1" id="kpiTotalKg">0 kg</h3>
+                    </div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i class="fa-solid fa-weight-hanging text-xl"></i>
                     </div>
                 </div>
 
-                <!-- Média de Tempo -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center transform transition-transform hover:-translate-y-1">
-                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-                        <i class="fa-solid fa-stopwatch text-xl"></i>
-                    </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Média de Tempo</p>
-                        <p class="text-2xl font-bold text-gray-900" id="kpiMediaTempo">0h 0m</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Média Tempo / Aplicação</p>
+                        <h3 class="text-2xl font-bold text-blue-600 mt-1" id="kpiMediaTempo">0h 0m</h3>
+                    </div>
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <i class="fa-regular fa-clock text-xl"></i>
                     </div>
                 </div>
 
-                <!-- Média por Bloco -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center transform transition-transform hover:-translate-y-1">
-                    <div class="p-3 rounded-full bg-amber-100 text-amber-600 mr-4">
-                        <i class="fa-solid fa-map-location-dot text-xl"></i>
-                    </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Média p/ Setor</p>
-                        <p class="text-2xl font-bold text-gray-900" id="kpiMediaBloco">0.00 kg</p>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Média por Setor</p>
+                        <h3 class="text-2xl font-bold text-amber-600 mt-1" id="kpiMediaBloco">0 kg</h3>
+                    </div>
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                        <i class="fa-solid fa-cubes text-xl"></i>
                     </div>
                 </div>
 
-                <!-- Produto Mais Aplicado -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center transform transition-transform hover:-translate-y-1">
-                    <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
-                        <i class="fa-solid fa-flask text-xl"></i>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <div class="overflow-hidden mr-2">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Produto Mais Aplicado</p>
+                        <h3 class="text-lg font-bold text-indigo-600 mt-1 truncate" id="kpiProdutoNome">-</h3>
+                        <p class="text-xs text-slate-400 font-medium" id="kpiProdutoKg">0 kg</p>
                     </div>
-                    <div class="overflow-hidden">
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Produto Top</p>
-                        <p class="text-lg font-bold text-gray-900 truncate" id="kpiProdutoNome">-</p>
-                        <p class="text-sm text-indigo-600 font-semibold" id="kpiProdutoKg">0 kg</p>
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                        <i class="fa-solid fa-crown text-xl"></i>
                     </div>
                 </div>
             </div>
 
             <!-- Charts Row 1 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Adubação Média/Total por Mês -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-800 mb-4">Adubação Total por Mês (Kg)</h3>
-                    <div class="relative h-72 w-full">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: Total por Mês -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                    <div class="mb-4">
+                        <h3 class="font-bold text-slate-800 text-base">Adubação Total por Mês (Kg)</h3>
+                        <p class="text-xs text-slate-400">Soma acumulada de adubo aplicado mensalmente</p>
+                    </div>
+                    <div class="h-72 w-full">
                         <canvas id="chartMes"></canvas>
                     </div>
                 </div>
 
-                <!-- Aplicação por Mês e Produto (Agrupado) -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-800 mb-1">Aplicação por Produto ao Mês (Kg)</h3>
-                    <p class="text-xs text-gray-500 mb-4">Barras lado a lado para comparação de produtos.</p>
-                    <div class="relative h-72 w-full">
+                <!-- Chart 2: Produtos por Mês -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                    <div class="mb-4">
+                        <h3 class="font-bold text-slate-800 text-base">Aplicação por Produto ao Mês (Kg)</h3>
+                        <p class="text-xs text-slate-400">Distribuição individual de cada fertilizante ao longo dos meses</p>
+                    </div>
+                    <div class="h-72 w-full">
                         <canvas id="chartProdMes"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ABA 2: Comparativo -->
-        <div id="tab-comparativo" class="tab-content hidden">
-            <div class="mb-6 flex justify-between items-end">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Análise Comparativa</h1>
-                    <p class="text-gray-500 text-sm mt-1">Distribuições, percentuais e análises detalhadas.</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <!-- Adubação por Semana -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-800 mb-4">Total Aplicado por Semana (Kg)</h3>
-                    <div class="relative h-72 w-full">
+        <!-- TAB 2: COMPARATIVO -->
+        <div id="tab-comparativo" class="tab-content space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 3: Semanal -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="mb-4">
+                        <h3 class="font-bold text-slate-800 text-base">Total Aplicado por Semana (Kg)</h3>
+                        <p class="text-xs text-slate-400">Comparativo quinzenal e semanal de volume de adubação</p>
+                    </div>
+                    <div class="h-72 w-full">
                         <canvas id="chartSemana"></canvas>
                     </div>
                 </div>
 
-                <!-- Distribuição por Setor (%) -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-800 mb-4">Distribuição por Setor (%)</h3>
-                    <div class="relative h-72 w-full flex justify-center">
+                <!-- Chart 4: Setores (%) -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="mb-4">
+                        <h3 class="font-bold text-slate-800 text-base">Distribuição por Setor (%)</h3>
+                        <p class="text-xs text-slate-400">Porcentagem do adubo total alocado por setor agrícola</p>
+                    </div>
+                    <div class="h-72 w-full flex items-center justify-center">
                         <canvas id="chartSetor"></canvas>
                     </div>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <!-- Aplicações por Aplicador (%) -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-800 mb-4">Participação por Aplicador (%)</h3>
-                    <div class="relative h-72 w-full">
+                <!-- Chart 5: Aplicadores (%) -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="mb-4">
+                        <h3 class="font-bold text-slate-800 text-base">Participação por Aplicador (%)</h3>
+                        <p class="text-xs text-slate-400">Proporção de adubação executada por cada operador</p>
+                    </div>
+                    <div class="h-72 w-full">
                         <canvas id="chartAplicador"></canvas>
                     </div>
                 </div>
 
-                <!-- Total Aplicado por Meio da Aplicação -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-800 mb-4">Total por Meio de Aplicação (Kg)</h3>
-                    <div class="relative h-72 w-full">
+                <!-- Chart 6: Meio de Aplicação -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="mb-4">
+                        <h3 class="font-bold text-slate-800 text-base">Total por Meio de Aplicação (Kg)</h3>
+                        <p class="text-xs text-slate-400">Volume aplicado categorizado por método (Manual, Trator, Fertirrigação)</p>
+                    </div>
+                    <div class="h-72 w-full">
                         <canvas id="chartMeio"></canvas>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ABA 3: Registros -->
-        <div id="tab-registros" class="tab-content hidden">
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold text-gray-900">Registros Brutos</h1>
-                <p class="text-gray-500 text-sm mt-1">Tabela completa dos dados filtrados.</p>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="table-container overflow-x-auto w-full max-h-[600px] overflow-y-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50 sticky top-0 z-10">
+        <!-- TAB 3: REGISTROS BRUTOS -->
+        <div id="tab-registros" class="tab-content space-y-4 hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">Registros de Adubação</h3>
+                        <p class="text-xs text-slate-500" id="tableCount">0 registros encontrados</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto table-container max-h-[600px]">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-100 text-slate-700 sticky top-0 uppercase font-semibold">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semana</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Setor</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variedade</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Kg</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meio</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aplicador</th>
+                                <th class="px-4 py-3 border-b">Data</th>
+                                <th class="px-4 py-3 border-b text-center">Semana</th>
+                                <th class="px-4 py-3 border-b">Setor</th>
+                                <th class="px-4 py-3 border-b">Produto</th>
+                                <th class="px-4 py-3 border-b">Variedade</th>
+                                <th class="px-4 py-3 border-b text-right">Kg</th>
+                                <th class="px-4 py-3 border-b">Meio</th>
+                                <th class="px-4 py-3 border-b">Horário</th>
+                                <th class="px-4 py-3 border-b">Aplicador</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody" class="bg-white divide-y divide-gray-200 text-sm">
-                            <!-- Populated by JS -->
+                        <tbody id="tableBody" class="divide-y divide-slate-100 text-slate-600">
                         </tbody>
                     </table>
-                </div>
-                <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 text-sm text-gray-500 flex justify-between">
-                    <span id="tableCount">0 registros encontrados</span>
                 </div>
             </div>
         </div>
 
     </main>
 
+    <!-- Export Modal -->
+    <div id="exportModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+                        <i class="fa-solid fa-file-pdf text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">Exportar Relatório</h3>
+                        <p class="text-xs text-slate-500">Selecione o formato e os gráficos desejados</p>
+                    </div>
+                </div>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="py-4 space-y-4">
+                <!-- Formato -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">1. Formato do Arquivo</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer hover:border-emerald-500 transition-all text-slate-700 font-medium text-sm has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/50">
+                            <input type="radio" name="exportFormat" value="pdf" checked class="mr-2 text-emerald-600 focus:ring-emerald-500">
+                            <i class="fa-solid fa-file-pdf text-red-500 mr-2"></i> Documento PDF
+                        </label>
+                        <label class="flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer hover:border-emerald-500 transition-all text-slate-700 font-medium text-sm has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/50">
+                            <input type="radio" name="exportFormat" value="jpeg" class="mr-2 text-emerald-600 focus:ring-emerald-500">
+                            <i class="fa-solid fa-file-image text-blue-500 mr-2"></i> Imagem JPEG
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Seleção de Conteúdo -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">2. Selecione os Gráficos & Dados</label>
+                        <button onclick="toggleAllExportItems(true)" class="text-xs text-emerald-600 font-medium hover:underline">Selecionar Todos</button>
+                    </div>
+                    <div class="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 text-sm">
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-medium">
+                            <input type="checkbox" id="expKpis" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span><i class="fa-solid fa-chart-line text-emerald-600 mr-1.5"></i> Indicadores Gerais (KPIs)</span>
+                        </label>
+                        <hr class="border-slate-200">
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="expChartMes" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>Adubação Total por Mês (Kg)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="expChartProdMes" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>Aplicação por Produto ao Mês (Kg)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="expChartSemana" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>Total Aplicado por Semana (Kg)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="expChartSetor" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>Distribuição por Setor (%)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="expChartAplicador" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>Participação por Aplicador (%)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                            <input type="checkbox" id="expChartMeio" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>Total por Meio de Aplicação (Kg)</span>
+                        </label>
+                        <hr class="border-slate-200">
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-medium">
+                            <input type="checkbox" id="expTable" class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span><i class="fa-solid fa-table text-slate-500 mr-1.5"></i> Resumo Tabela de Registros</span>
+                        </label>
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-500 flex items-center gap-1.5 bg-amber-50 text-amber-800 p-2.5 rounded-lg border border-amber-200">
+                    <i class="fa-solid fa-circle-info text-amber-600"></i>
+                    Proporção Retrato (1280px) pré-formatada para visualização perfeita dos dados sem cortes.
+                </p>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button onclick="closeExportModal()" class="px-4 py-2 text-slate-600 text-sm hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
+                <button id="btnGenerateExport" onclick="generateExport()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded-lg shadow-md transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i> Gerar Arquivo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Export Render Container (1280px Portrait Layout) -->
+    <div id="exportRenderContainer" class="fixed -left-[9999px] top-0 bg-white p-8 w-[1280px] text-slate-800 space-y-6 font-['Inter'] z-[-1]">
+        <div class="flex items-center justify-between border-b-2 border-emerald-600 pb-4">
+            <div class="flex items-center gap-4">
+                <img src="https://i.imgur.com/GZPcOWg.png" alt="Logo AgroControl" class="h-14 w-auto bg-transparent border-0 outline-none p-0">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Relatório de Aplicação de Adubação</h1>
+                    <p class="text-xs text-slate-500" id="expMetaInfo">Gerado por AgroControl</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="inline-block bg-emerald-100 text-emerald-800 font-semibold px-3 py-1 rounded-full text-xs" id="expPeriodoTag">Período: Completo</span>
+            </div>
+        </div>
+
+        <div id="expKpiSection" class="grid grid-cols-4 gap-4">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <p class="text-xs font-medium text-slate-500 uppercase">Total Aplicado</p>
+                <p class="text-xl font-bold text-emerald-700" id="expKpiTotal">-</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <p class="text-xs font-medium text-slate-500 uppercase">Média Tempo</p>
+                <p class="text-xl font-bold text-blue-700" id="expKpiTempo">-</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <p class="text-xs font-medium text-slate-500 uppercase">Média p/ Setor</p>
+                <p class="text-xl font-bold text-amber-700" id="expKpiBloco">-</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <p class="text-xs font-medium text-slate-500 uppercase">Produto Top</p>
+                <p class="text-lg font-bold text-indigo-700 truncate" id="expKpiProduto">-</p>
+            </div>
+        </div>
+
+        <div id="expChartsGrid" class="grid grid-cols-2 gap-6"></div>
+
+        <div id="expTableSection" class="hidden">
+            <h3 class="text-base font-bold text-slate-800 mb-2">Registros de Adubação</h3>
+            <table class="w-full text-left text-xs border border-slate-200">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="p-2 border">Data</th>
+                        <th class="p-2 border">Semana</th>
+                        <th class="p-2 border">Setor</th>
+                        <th class="p-2 border">Produto</th>
+                        <th class="p-2 border text-right">Kg</th>
+                        <th class="p-2 border">Meio</th>
+                        <th class="p-2 border">Aplicador</th>
+                    </tr>
+                </thead>
+                <tbody id="expTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // URL da Planilha Google
+        // Google Sheet CSV URL
         const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJfPIEW6e5KKB1AHQGEptWfx3ZgF8np8eRyn2tFxVIIS8COWQIk0SS3V5n75k6BJoqd0teSi8suhvJ/pub?output=csv";
 
         // Global State
@@ -263,11 +488,28 @@
         let filteredData = [];
         let chartInstances = {};
 
-        // Paleta de cores para gráficos
+        // Multi-select state
+        let selectedSetores = [];
+        let selectedProdutos = [];
+        let selectedAplicadores = [];
+        let selectedMeios = [];
+
+        // Color palette for charts
         const colorPalette = [
             '#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', 
             '#14B8A6', '#F43F5E', '#84CC16', '#06B6D4', '#6366F1'
         ];
+
+        // Safe DOM helper functions
+        function setElemText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
+
+        function setElemHTML(id, html) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        }
 
         window.onload = () => {
             try {
@@ -275,55 +517,142 @@
                     Chart.register(ChartDataLabels);
                 }
                 fetchData();
+
+                // Close dropdowns on outside click
+                document.addEventListener('click', (e) => {
+                    ['dropdownSetor', 'dropdownProduto', 'dropdownAplicador', 'dropdownMeio'].forEach(id => {
+                        const container = document.getElementById(id + 'Container');
+                        if (container && !container.contains(e.target)) {
+                            const dropdown = document.getElementById(id);
+                            if (dropdown) dropdown.classList.add('hidden');
+                        }
+                    });
+                });
             } catch (err) {
                 console.error("Erro na inicialização:", err);
                 hideLoader();
             }
         };
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active', 'border-emerald-500', 'text-emerald-700'));
-            
-            document.getElementById(tabId).classList.remove('hidden');
-            let btn = document.getElementById('btn-' + tabId);
-            btn.classList.add('active', 'border-emerald-500', 'text-emerald-700');
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const isHidden = el.classList.contains('hidden');
+            document.querySelectorAll('[id^="dropdown"]').forEach(d => {
+                if (d.id !== id && !d.id.endsWith('Container')) d.classList.add('hidden');
+            });
+            if (isHidden) el.classList.remove('hidden');
+            else el.classList.add('hidden');
         }
 
-        function parseDateBR(dateStr) {
-            if (!dateStr) return null;
-            let parts = dateStr.split('/');
-            if (parts.length === 3) {
-                // Formato DD/MM/YYYY
-                return new Date(parts[2], parts[1] - 1, parts[0]);
+        function populateFilterOptions() {
+            const setores = [...new Set(allData.map(r => r['Setor'] ? r['Setor'].trim().toUpperCase() : 'ND'))].filter(Boolean).sort();
+            const produtos = [...new Set(allData.map(r => r['Produto'] ? r['Produto'].trim() : 'ND'))].filter(Boolean).sort();
+            const aplicadores = [...new Set(allData.map(r => r['Aplicador'] ? r['Aplicador'].trim() : 'ND'))].filter(Boolean).sort();
+            const meios = [...new Set(allData.map(r => r['Meio da aplicação'] ? r['Meio da aplicação'].trim() : 'ND'))].filter(Boolean).sort();
+
+            buildOptionsUI('optionsSetor', setores, 'setores');
+            buildOptionsUI('optionsProduto', produtos, 'produtos');
+            buildOptionsUI('optionsAplicador', aplicadores, 'aplicadores');
+            buildOptionsUI('optionsMeio', meios, 'meios');
+        }
+
+        function buildOptionsUI(elementId, items, type) {
+            const container = document.getElementById(elementId);
+            if (!container) return;
+            container.innerHTML = items.map(item => `
+                <label class="flex items-center gap-2 p-1 text-xs hover:bg-slate-100 rounded cursor-pointer text-slate-700">
+                    <input type="checkbox" value="${item}" onchange="handleFilterChange('${type}', this)" class="rounded text-emerald-600 focus:ring-emerald-500">
+                    <span class="truncate">${item}</span>
+                </label>
+            `).join('');
+        }
+
+        function handleFilterChange(type, checkbox) {
+            let arr;
+            if (type === 'setores') arr = selectedSetores;
+            else if (type === 'produtos') arr = selectedProdutos;
+            else if (type === 'aplicadores') arr = selectedAplicadores;
+            else if (type === 'meios') arr = selectedMeios;
+
+            if (checkbox.checked) {
+                if (!arr.includes(checkbox.value)) arr.push(checkbox.value);
+            } else {
+                const index = arr.indexOf(checkbox.value);
+                if (index > -1) arr.splice(index, 1);
             }
-            return null;
+
+            updateFilterLabels();
+            applyFilters();
+        }
+
+        function clearSelect(type) {
+            if (type === 'setores') selectedSetores = [];
+            else if (type === 'produtos') selectedProdutos = [];
+            else if (type === 'aplicadores') selectedAplicadores = [];
+            else if (type === 'meios') selectedMeios = [];
+
+            const optId = 'options' + type.charAt(0).toUpperCase() + type.slice(1, -1);
+            const checkboxes = document.querySelectorAll(`#${optId} input[type="checkbox"]`);
+            checkboxes.forEach(cb => cb.checked = false);
+
+            updateFilterLabels();
+            applyFilters();
+        }
+
+        function updateFilterLabels() {
+            setElemText('labelSetores', selectedSetores.length === 0 ? "Setores (Todos)" : `Setores (${selectedSetores.length})`);
+            setElemText('labelProdutos', selectedProdutos.length === 0 ? "Produtos (Todos)" : `Produtos (${selectedProdutos.length})`);
+            setElemText('labelAplicadores', selectedAplicadores.length === 0 ? "Aplicadores (Todos)" : `Aplicadores (${selectedAplicadores.length})`);
+            setElemText('labelMeios', selectedMeios.length === 0 ? "Meio (Todos)" : `Meio (${selectedMeios.length})`);
         }
 
         function clearFilters() {
-            document.getElementById('dateStart').value = '';
-            document.getElementById('dateEnd').value = '';
+            const startInput = document.getElementById('dateStart');
+            const endInput = document.getElementById('dateEnd');
+            if (startInput) startInput.value = '';
+            if (endInput) endInput.value = '';
+
+            selectedSetores = [];
+            selectedProdutos = [];
+            selectedAplicadores = [];
+            selectedMeios = [];
+
+            ['optionsSetor', 'optionsProduto', 'optionsAplicador', 'optionsMeio'].forEach(id => {
+                const checkboxes = document.querySelectorAll(`#${id} input[type="checkbox"]`);
+                checkboxes.forEach(cb => cb.checked = false);
+            });
+
+            updateFilterLabels();
             applyFilters();
         }
 
         function applyFilters() {
-            const startVal = document.getElementById('dateStart').value;
-            const endVal = document.getElementById('dateEnd').value;
+            const startVal = document.getElementById('dateStart')?.value;
+            const endVal = document.getElementById('dateEnd')?.value;
             
             let start = startVal ? new Date(startVal + 'T00:00:00') : null;
             let end = endVal ? new Date(endVal + 'T23:59:59') : null;
 
-            if (start || end) {
-                filteredData = allData.filter(row => {
-                    let d = parseDateBR(row['Data']);
-                    if (!d) return true; // Se não tem data válida, mantém
+            filteredData = allData.filter(row => {
+                let rSetor = row['Setor'] ? row['Setor'].trim().toUpperCase() : "ND";
+                let rProd = row['Produto'] ? row['Produto'].trim() : "Sem nome";
+                let rAplicador = row['Aplicador'] ? row['Aplicador'].trim() : "ND";
+                let rMeio = row['Meio da aplicação'] ? row['Meio da aplicação'].trim() : "ND";
+
+                if (selectedSetores.length > 0 && !selectedSetores.includes(rSetor)) return false;
+                if (selectedProdutos.length > 0 && !selectedProdutos.includes(rProd)) return false;
+                if (selectedAplicadores.length > 0 && !selectedAplicadores.includes(rAplicador)) return false;
+                if (selectedMeios.length > 0 && !selectedMeios.includes(rMeio)) return false;
+
+                let d = parseDateBR(row['Data']);
+                if (d) {
                     if (start && d < start) return false;
                     if (end && d > end) return false;
-                    return true;
-                });
-            } else {
-                filteredData = [...allData];
-            }
+                }
+
+                return true;
+            });
 
             updateDashboard(filteredData);
         }
@@ -336,10 +665,11 @@
                 complete: function(results) {
                     try {
                         allData = results.data;
-                        applyFilters(); // Inicializa com todos os dados
-                        hideLoader();
+                        populateFilterOptions();
+                        applyFilters();
                     } catch (err) {
                         console.error("Erro ao processar dados carregados:", err);
+                    } finally {
                         hideLoader();
                     }
                 },
@@ -352,11 +682,30 @@
         }
 
         function hideLoader() {
-            let overlay = document.getElementById('loadingOverlay');
+            const overlay = document.getElementById('loadingOverlay');
             if (overlay) overlay.style.display = 'none';
         }
 
-        // Utils de formatação
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active', 'border-emerald-500', 'text-emerald-700'));
+            
+            const target = document.getElementById(tabId);
+            if (target) target.classList.remove('hidden');
+            
+            const btn = document.getElementById('btn-' + tabId);
+            if (btn) btn.classList.add('active', 'border-emerald-500', 'text-emerald-700');
+        }
+
+        function parseDateBR(dateStr) {
+            if (!dateStr) return null;
+            let parts = dateStr.split('/');
+            if (parts.length === 3) {
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return null;
+        }
+
         function parseBRFloat(val) {
             if (!val) return 0;
             if (typeof val === 'number') return val;
@@ -375,7 +724,7 @@
             let sMin = parseInt(sParts[0], 10) * 60 + parseInt(sParts[1], 10);
             let eMin = parseInt(eParts[0], 10) * 60 + parseInt(eParts[1], 10);
             let diff = eMin - sMin;
-            if (diff < 0) diff += 24 * 60; // Passou da meia noite
+            if (diff < 0) diff += 24 * 60;
             return diff;
         }
 
@@ -400,7 +749,6 @@
         }
 
         function updateDashboard(data) {
-            // Aggregators
             let totalKg = 0;
             let totalMinutes = 0;
             let timeEntriesCount = 0;
@@ -408,8 +756,8 @@
             let stats = {
                 setores: {},
                 produtos: {},
-                meses: {},       // Totais por mês
-                mesProduto: {},  // Para gráfico de barras agrupadas: Mes -> Produto -> Kg
+                meses: {},
+                mesProduto: {},
                 semanas: {},
                 meios: {},
                 aplicadores: {}
@@ -425,14 +773,12 @@
                 let kg = parseBRFloat(r['Kg']);
                 totalKg += kg;
 
-                // Tempo
                 let dur = getDurationInMinutes(r['Inicio'], r['Fim']);
                 if (dur > 0) {
                     totalMinutes += dur;
                     timeEntriesCount++;
                 }
 
-                // Chaves
                 let setor = r['Setor'] ? r['Setor'].trim().toUpperCase() : "ND";
                 let prod = r['Produto'] ? r['Produto'].trim() : "Sem nome";
                 let mesAno = getMonthYearStr(r['Data']);
@@ -442,7 +788,6 @@
 
                 allProductsSet.add(prod);
 
-                // Acúmulos
                 stats.setores[setor] = (stats.setores[setor] || 0) + kg;
                 stats.produtos[prod] = (stats.produtos[prod] || 0) + kg;
                 stats.meses[mesAno] = (stats.meses[mesAno] || 0) + kg;
@@ -450,65 +795,59 @@
                 stats.meios[meio] = (stats.meios[meio] || 0) + kg;
                 stats.aplicadores[aplicador] = (stats.aplicadores[aplicador] || 0) + kg;
 
-                // Agrupamento para gráfico de Mes x Produto
                 if (!stats.mesProduto[mesAno]) stats.mesProduto[mesAno] = {};
                 stats.mesProduto[mesAno][prod] = (stats.mesProduto[mesAno][prod] || 0) + kg;
 
-                // Gerar linha da tabela
                 tableHTML += `
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-2 whitespace-nowrap">${r['Data'] || ''}</td>
-                        <td class="px-6 py-2 whitespace-nowrap text-center">${r['Semana'] || ''}</td>
-                        <td class="px-6 py-2 whitespace-nowrap font-medium text-gray-700">${setor}</td>
-                        <td class="px-6 py-2 whitespace-nowrap">${prod}</td>
-                        <td class="px-6 py-2 whitespace-nowrap text-gray-500">${r['Variedade'] || ''}</td>
-                        <td class="px-6 py-2 whitespace-nowrap text-right font-semibold text-emerald-600">${kg.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1})}</td>
-                        <td class="px-6 py-2 whitespace-nowrap">${meio}</td>
-                        <td class="px-6 py-2 whitespace-nowrap text-gray-500">${r['Inicio']||''} - ${r['Fim']||''}</td>
-                        <td class="px-6 py-2 whitespace-nowrap">${aplicador}</td>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-2.5 whitespace-nowrap">${r['Data'] || ''}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap text-center">${r['Semana'] || ''}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap font-medium text-slate-700">${setor}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap">${prod}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap text-slate-500">${r['Variedade'] || ''}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap text-right font-semibold text-emerald-600">${kg.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1})}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap">${meio}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap text-slate-500">${r['Inicio']||''} - ${r['Fim']||''}</td>
+                        <td class="px-4 py-2.5 whitespace-nowrap">${aplicador}</td>
                     </tr>
                 `;
             });
 
-            // Update KPIs Diários
-            document.getElementById('kpiTotalKg').innerText = totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " kg";
+            // Update KPIs with safe checks
+            setElemText('kpiTotalKg', totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " kg");
 
             let mediaTempo = timeEntriesCount > 0 ? (totalMinutes / timeEntriesCount) : 0;
-            document.getElementById('kpiMediaTempo').innerText = formatMinutesToHM(mediaTempo);
+            setElemText('kpiMediaTempo', formatMinutesToHM(mediaTempo));
 
             let numSetores = Object.keys(stats.setores).length || 1;
-            document.getElementById('kpiMediaBloco').innerText = (totalKg / numSetores).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " kg";
+            setElemText('kpiMediaBloco', (totalKg / numSetores).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " kg");
 
-            // Encontrar Produto Top
             let maxProd = "-", maxKg = 0;
             for (let p in stats.produtos) {
                 if (stats.produtos[p] > maxKg) { maxKg = stats.produtos[p]; maxProd = p; }
             }
-            document.getElementById('kpiProdutoNome').innerText = maxProd;
-            document.getElementById('kpiProdutoNome').title = maxProd;
-            document.getElementById('kpiProdutoKg').innerText = maxKg.toLocaleString('pt-BR') + " kg";
+            setElemText('kpiProdutoNome', maxProd);
+            const kpiProdElem = document.getElementById('kpiProdutoNome');
+            if (kpiProdElem) kpiProdElem.title = maxProd;
+            setElemText('kpiProdutoKg', maxKg.toLocaleString('pt-BR') + " kg");
 
-            // Preencher Tabela
-            document.getElementById('tableBody').innerHTML = tableHTML;
-            document.getElementById('tableCount').innerText = `${data.length} registros encontrados`;
+            // Fill Table
+            setElemHTML('tableBody', tableHTML);
+            setElemText('tableCount', `${data.length} registros encontrados`);
 
-            // Sort logic arrays for charts
-            let sortedMeses = Object.keys(stats.meses); // Idealy should be date sorted, but alphabetical is fallback if chronological fails.
+            // Render Charts
+            let sortedMeses = Object.keys(stats.meses);
             
             renderBarChart('chartMes', 'Total (Kg)', Object.keys(stats.meses), Object.values(stats.meses), colorPalette[0]);
-            
             renderGroupedBarChart(stats.mesProduto, Array.from(allProductsSet), sortedMeses);
-            
             renderBarChart('chartSemana', 'Total (Kg)', Object.keys(stats.semanas), Object.values(stats.semanas), colorPalette[1]);
-            
             renderBarChart('chartMeio', 'Total (Kg)', Object.keys(stats.meios), Object.values(stats.meios), colorPalette[2]);
 
-            // Gráficos de Porcentagem
             renderDoughnutChart('chartSetor', stats.setores, totalKg);
             renderPercentageBarChart('chartAplicador', stats.aplicadores, totalKg);
         }
 
-        // Auxiliares de Gráficos
+        // Chart Helpers
         function destroyChart(id) {
             if (chartInstances[id]) {
                 chartInstances[id].destroy();
@@ -517,7 +856,10 @@
 
         function renderBarChart(canvasId, label, labels, data, color) {
             destroyChart(canvasId);
-            const ctx = document.getElementById(canvasId).getContext('2d');
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
             chartInstances[canvasId] = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -547,9 +889,11 @@
             });
         }
 
-        // Gráfico Agrupado (Mês x Produto)
         function renderGroupedBarChart(mesProdutoMap, allProducts, mesesLabels) {
             destroyChart('chartProdMes');
+            const canvas = document.getElementById('chartProdMes');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
             
             let datasets = [];
             allProducts.forEach((prod, index) => {
@@ -568,7 +912,6 @@
                 });
             });
 
-            const ctx = document.getElementById('chartProdMes').getContext('2d');
             chartInstances['chartProdMes'] = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -596,11 +939,12 @@
             });
         }
 
-        // Gráfico de Pizza/Doughnut para Setores em Porcentagem
         function renderDoughnutChart(canvasId, dataMap, totalGlobal) {
             destroyChart(canvasId);
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
             
-            // Ordenar por maior para melhor visualização
             let sorted = Object.entries(dataMap).sort((a,b) => b[1] - a[1]);
             let labels = sorted.map(i => i[0]);
             let data = sorted.map(i => i[1]);
@@ -608,7 +952,6 @@
             let bgColors = labels.map((_, i) => colorPalette[i % colorPalette.length] + 'CC');
             let borderColors = labels.map((_, i) => colorPalette[i % colorPalette.length]);
 
-            const ctx = document.getElementById(canvasId).getContext('2d');
             chartInstances[canvasId] = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -632,9 +975,9 @@
                         datalabels: {
                             color: '#fff',
                             font: { weight: 'bold', size: 12 },
-                            formatter: (val, ctx) => {
+                            formatter: (val) => {
                                 let perc = totalGlobal > 0 ? ((val / totalGlobal) * 100) : 0;
-                                return perc >= 5 ? perc.toFixed(0) + '%' : ''; // Mostra só se > 5% para não poluir
+                                return perc >= 5 ? perc.toFixed(0) + '%' : '';
                             }
                         }
                     }
@@ -642,16 +985,16 @@
             });
         }
 
-        // Gráfico de Barras Horizontais para Aplicadores em Porcentagem
         function renderPercentageBarChart(canvasId, dataMap, totalGlobal) {
             destroyChart(canvasId);
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
             
             let sorted = Object.entries(dataMap).sort((a,b) => b[1] - a[1]);
             let labels = sorted.map(i => i[0]);
-            // Converte valores para porcentagem
             let data = sorted.map(i => totalGlobal > 0 ? ((i[1] / totalGlobal) * 100) : 0);
             
-            const ctx = document.getElementById(canvasId).getContext('2d');
             chartInstances[canvasId] = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -666,7 +1009,7 @@
                     }]
                 },
                 options: {
-                    indexAxis: 'y', // Barra Horizontal
+                    indexAxis: 'y',
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
@@ -688,9 +1031,137 @@
                         x: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } },
                         y: { grid: { display: false } }
                     },
-                    layout: { padding: { right: 40 } } // Espaço para a %
+                    layout: { padding: { right: 40 } }
                 }
             });
+        }
+
+        /* Functions for PDF and JPEG Export */
+        function openExportModal() {
+            const modal = document.getElementById('exportModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function toggleAllExportItems(status) {
+            ['expKpis', 'expChartMes', 'expChartProdMes', 'expChartSemana', 'expChartSetor', 'expChartAplicador', 'expChartMeio', 'expTable'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = status;
+            });
+        }
+
+        async function generateExport() {
+            const btn = document.getElementById('btnGenerateExport');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> Gerando...`;
+
+            try {
+                const format = document.querySelector('input[name="exportFormat"]:checked')?.value || 'pdf';
+                const renderContainer = document.getElementById('exportRenderContainer');
+                const chartsGrid = document.getElementById('expChartsGrid');
+                const kpiSection = document.getElementById('expKpiSection');
+                const tableSection = document.getElementById('expTableSection');
+                const tableBody = document.getElementById('expTableBody');
+
+                setElemText('expMetaInfo', `Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`);
+                const sVal = document.getElementById('dateStart')?.value;
+                const eVal = document.getElementById('dateEnd')?.value;
+                setElemText('expPeriodoTag', `Período: ${sVal ? sVal : 'Início'} até ${eVal ? eVal : 'Atual'}`);
+
+                if (document.getElementById('expKpis')?.checked) {
+                    if (kpiSection) kpiSection.classList.remove('hidden');
+                    setElemText('expKpiTotal', document.getElementById('kpiTotalKg')?.innerText || '-');
+                    setElemText('expKpiTempo', document.getElementById('kpiMediaTempo')?.innerText || '-');
+                    setElemText('expKpiBloco', document.getElementById('kpiMediaBloco')?.innerText || '-');
+                    setElemText('expKpiProduto', document.getElementById('kpiProdutoNome')?.innerText || '-');
+                } else if (kpiSection) {
+                    kpiSection.classList.add('hidden');
+                }
+
+                if (chartsGrid) chartsGrid.innerHTML = '';
+                const chartMap = [
+                    { id: 'expChartMes', sourceId: 'chartMes', title: 'Adubação Total por Mês (Kg)' },
+                    { id: 'expChartProdMes', sourceId: 'chartProdMes', title: 'Aplicação por Produto ao Mês (Kg)' },
+                    { id: 'expChartSemana', sourceId: 'chartSemana', title: 'Total Aplicado por Semana (Kg)' },
+                    { id: 'expChartSetor', sourceId: 'chartSetor', title: 'Distribuição por Setor (%)' },
+                    { id: 'expChartAplicador', sourceId: 'chartAplicador', title: 'Participação por Aplicador (%)' },
+                    { id: 'expChartMeio', sourceId: 'chartMeio', title: 'Total por Meio de Aplicação (Kg)' },
+                ];
+
+                chartMap.forEach(item => {
+                    const isChecked = document.getElementById(item.id)?.checked;
+                    if (isChecked && chartInstances[item.sourceId] && chartsGrid) {
+                        const chartCard = document.createElement('div');
+                        chartCard.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center';
+                        chartCard.innerHTML = `<h4 class="text-xs font-bold text-slate-700 mb-2 text-center w-full">${item.title}</h4>`;
+
+                        const img = document.createElement('img');
+                        img.src = chartInstances[item.sourceId].toBase64Image();
+                        img.className = 'w-full h-auto max-h-64 object-contain rounded';
+                        chartCard.appendChild(img);
+
+                        chartsGrid.appendChild(chartCard);
+                    }
+                });
+
+                if (document.getElementById('expTable')?.checked && filteredData.length > 0) {
+                    if (tableSection) tableSection.classList.remove('hidden');
+                    let rows = filteredData.slice(0, 30).map(r => `
+                        <tr>
+                            <td class="p-1.5 border">${r['Data'] || ''}</td>
+                            <td class="p-1.5 border">${r['Semana'] || ''}</td>
+                            <td class="p-1.5 border font-semibold">${r['Setor'] || ''}</td>
+                            <td class="p-1.5 border">${r['Produto'] || ''}</td>
+                            <td class="p-1.5 border text-right font-bold text-emerald-600">${parseBRFloat(r['Kg']).toLocaleString('pt-BR')}</td>
+                            <td class="p-1.5 border">${r['Meio da aplicação'] || ''}</td>
+                            <td class="p-1.5 border">${r['Aplicador'] || ''}</td>
+                        </tr>
+                    `).join('');
+                    if (filteredData.length > 30) {
+                        rows += `<tr><td colspan="7" class="p-1.5 border text-center text-slate-400 font-medium">... e mais ${filteredData.length - 30} registros.</td></tr>`;
+                    }
+                    if (tableBody) tableBody.innerHTML = rows;
+                } else if (tableSection) {
+                    tableSection.classList.add('hidden');
+                }
+
+                const canvas = await html2canvas(renderContainer, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+
+                if (format === 'jpeg') {
+                    const link = document.createElement('a');
+                    link.download = `relatorio_adubacao_${new Date().toISOString().slice(0,10)}.jpg`;
+                    link.href = canvas.toDataURL('image/jpeg', 0.92);
+                    link.click();
+                } else {
+                    const { jsPDF } = window.jspdf;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'px',
+                        format: [1280, canvas.height]
+                    });
+                    pdf.addImage(imgData, 'JPEG', 0, 0, 1280, canvas.height);
+                    pdf.save(`relatorio_adubacao_${new Date().toISOString().slice(0,10)}.pdf`);
+                }
+
+                closeExportModal();
+            } catch (err) {
+                console.error("Erro ao gerar exportação:", err);
+                alert("Ocorreu um erro ao gerar o arquivo. Tente novamente.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-download"></i> Gerar Arquivo`;
+            }
         }
     </script>
 </body>
