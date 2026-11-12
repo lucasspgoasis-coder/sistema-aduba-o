@@ -17,7 +17,7 @@ if(typeof Chart!=='undefined'){
  Chart.defaults.plugins.tooltip.backgroundColor='#123d2e'; Chart.defaults.plugins.tooltip.padding=12; Chart.defaults.plugins.tooltip.cornerRadius=9;
  Chart.defaults.plugins.legend.labels.usePointStyle=true; Chart.defaults.plugins.legend.labels.padding=18;
  Chart.defaults.datasets.bar.maxBarThickness=56; Chart.defaults.datasets.bar.borderRadius=6;
- Chart.register({id:'readableDashboard',beforeInit(chart){const options=chart.config.options; options.animation=false;options.locale='pt-BR'; if(options.plugins?.datalabels){options.plugins.datalabels.display=ctx=>ctx.chart.data.labels.length<=12&&ctx.chart.data.datasets.length<=4&&Number(ctx.dataset.data[ctx.dataIndex])>0;options.plugins.datalabels.clamp=true;} if(options.scales){Object.values(options.scales).forEach(axis=>{axis.ticks={...axis.ticks,maxRotation:35,autoSkip:true};});} },afterDraw(chart){if(!chart.data.datasets.some(dataset=>dataset.data.some(value=>Number(value)>0))){const {ctx,width,height}=chart;ctx.save();ctx.fillStyle='#60766b';ctx.font='13px Inter, Arial';ctx.textAlign='center';ctx.fillText('Sem dados para os filtros selecionados',width/2,height/2);ctx.restore();}}});
+ Chart.register({id:'readableDashboard',beforeInit(chart){const options=chart.config.options; options.animation=false;options.locale='pt-BR'; if(chart.canvas.id!=='chartProdutoSetor' && options.plugins?.datalabels){options.plugins.datalabels.display=ctx=>ctx.chart.data.labels.length<=12&&ctx.chart.data.datasets.length<=4&&Number(ctx.dataset.data[ctx.dataIndex])>0;options.plugins.datalabels.clamp=true;} if(options.scales){Object.values(options.scales).forEach(axis=>{axis.ticks={...axis.ticks,maxRotation:35,autoSkip:axis.ticks?.autoSkip ?? true};});} },afterDraw(chart){if(!chart.data.datasets.some(dataset=>dataset.data.some(value=>Number(value)>0))){const {ctx,width,height}=chart;ctx.save();ctx.fillStyle='#60766b';ctx.font='13px Inter, Arial';ctx.textAlign='center';ctx.fillText('Sem dados para os filtros selecionados',width/2,height/2);ctx.restore();}}});
 }
 const exportItems=[['expChartMes','chartMes','Adubação total por mês · kg'],['expChartProdMes','chartProdMes','Aplicação por produto ao mês · kg'],['expChartProdutoSetor','chartProdutoSetor','Total por produto em cada setor · kg'],['expChartSemana','chartSemana','Total aplicado por semana · kg'],['expChartSetor','chartSetor','Distribuição por setor · %'],['expChartAplicador','chartAplicador','Participação por aplicador · %'],['expChartMeio','chartMeio','Total por meio de aplicação · kg']];
 generateExport = async function(){
@@ -63,4 +63,63 @@ generateExport = async function(){
   }
   closeExportModal();
  }catch(error){console.error(error);alert('Não foi possível gerar o arquivo: '+error.message);}finally{root.innerHTML=saved;root.style.removeProperty('display');button.disabled=false;closeButtons.forEach(b=>b.disabled=false);syncExportButton();}
+};
+
+
+// Recalculate canvas dimensions after a previously hidden tab becomes visible.
+const showDashboardTab = switchTab;
+switchTab = function(tabId) {
+    showDashboardTab(tabId);
+    document.querySelectorAll('.tab-btn').forEach(button => button.setAttribute('aria-selected', String(button.id === 'btn-' + tabId)));
+    requestAnimationFrame(() => {
+        const panel = document.getElementById(tabId);
+        Object.values(chartInstances).forEach(chart => {
+            if (panel?.contains(chart.canvas)) { chart.resize(); chart.update('none'); }
+        });
+    });
+};
+
+function buildProductBlockSummary(map, products, blocks) {
+    const orderedProducts = [...products].sort((a,b) => a.localeCompare(b, 'pt-BR', {numeric:true}));
+    const orderedBlocks = [...blocks].sort((a,b) => a.localeCompare(b, 'pt-BR', {numeric:true}));
+    const rows = orderedBlocks.map(block => ({
+        block,
+        values: orderedProducts.map(product => Number(map[product]?.[block]) || 0)
+    }));
+    return {products:orderedProducts, rows, totals:orderedProducts.map((_,index) => rows.reduce((sum,row) => sum + row.values[index],0))};
+}
+
+renderHorizontalStackedBarChart = function(canvasId, map, products, blocks) {
+    const summary = buildProductBlockSummary(map, products, blocks);
+    const number = value => value.toLocaleString('pt-BR', {maximumFractionDigits:2});
+    const table = document.getElementById('productMatrix');
+    const total = summary.totals.reduce((sum,value) => sum + value,0);
+    document.getElementById('productMatrixSummary').textContent = summary.rows.length + ' blocos · ' + summary.products.length + ' produtos · ' + number(total) + ' kg';
+    if (!summary.rows.length || !summary.products.length) {
+        table.innerHTML = '<caption class="matrix-empty">Nenhuma aplicação para os filtros selecionados.</caption>';
+    } else {
+        table.innerHTML = '<caption class="sr-only">Quantidade aplicada em kg por bloco e produto</caption><thead><tr><th scope="col">Bloco</th>' + summary.products.map(product => '<th scope="col">' + escapeReport(product) + '</th>').join('') + '<th scope="col">Total · kg</th></tr></thead><tbody>' + summary.rows.map(row => '<tr><th scope="row">' + escapeReport(row.block) + '</th>' + row.values.map(value => '<td class="' + (value ? '' : 'matrix-zero') + '">' + (value ? number(value) : '—') + '</td>').join('') + '<td class="matrix-total">' + number(row.values.reduce((sum,value) => sum + value,0)) + '</td></tr>').join('') + '</tbody><tfoot><tr><th scope="row">Total · kg</th>' + summary.totals.map(value => '<td>' + number(value) + '</td>').join('') + '<td>' + number(total) + '</td></tr></tfoot>';
+    }
+    destroyChart(canvasId);
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    canvas.parentElement.style.height = Math.max(360, summary.rows.length * 48 + Math.ceil(summary.products.length / 5) * 24 + 90) + 'px';
+    const productNames = [...new Set(allData.map(row => (row.Produto || 'Sem nome').trim()))].sort((a,b) => a.localeCompare(b,'pt-BR',{numeric:true}));
+    chartInstances[canvasId] = new Chart(canvas.getContext('2d'), {
+        type:'bar',
+        data:{labels:summary.rows.map(row=>row.block), datasets:summary.products.map((product,index)=>({
+            label:product, data:summary.rows.map(row=>row.values[index]),
+            backgroundColor:colorPalette[Math.max(0,productNames.indexOf(product)) % colorPalette.length],
+            borderColor:'#ffffff', borderWidth:1, borderRadius:3, maxBarThickness:30
+        }))},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
+            interaction:{mode:'nearest',intersect:true},
+            layout:{padding:{right:16,top:8}},
+            scales:{x:{stacked:true,beginAtZero:true,title:{display:true,text:'Quantidade aplicada · kg'},grid:{color:'#eaf0ec'},ticks:{callback:value=>number(Number(value))}},y:{stacked:true,grid:{display:false},ticks:{autoSkip:false,font:{weight:'600'}}}},
+            plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:16,font:{size:11}}},
+                tooltip:{callbacks:{label:context=>context.dataset.label + ': ' + number(context.raw) + ' kg',footer:items=>{const row=summary.rows[items[0]?.dataIndex];return row ? 'Total do bloco: '+number(row.values.reduce((sum,value)=>sum+value,0))+' kg' : '';}}},
+                datalabels:{display:'auto',anchor:'center',align:'center',clamp:true,color:'#163f30',backgroundColor:'#ffffffeb',borderRadius:4,padding:3,font:{size:10,weight:'600'},formatter:value=>value>0 ? number(value) : ''}
+            }
+        }
+    });
 };

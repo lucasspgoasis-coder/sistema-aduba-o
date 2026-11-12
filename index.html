@@ -38,7 +38,7 @@
             font-weight: 600;
         }
     </style>
-    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="dashboard.css?v=2">
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col relative">
 
@@ -351,8 +351,8 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                 <div class="mb-4 flex justify-between items-start">
                     <div>
-                        <h3 class="font-bold text-slate-800 text-base">Total Aplicado por Produto Detalhado por Bloco (Kg)</h3>
-                        <p class="text-xs text-slate-400">Distribuição visual quantitativa de cada fertilizante dentro dos setores selecionados.</p>
+                        <h3 class="font-bold text-slate-800 text-base">Produtos aplicados por bloco · kg</h3>
+                        <p class="text-xs text-slate-400">Cada barra representa um bloco. As cores identificam os produtos e os valores estão detalhados na tabela abaixo.</p>
                     </div>
                     <div class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-medium border border-emerald-200">
                         <i class="fa-solid fa-filter mr-1"></i> Responde aos filtros globais
@@ -362,6 +362,10 @@
                     <canvas id="chartProdutoSetor"></canvas>
                 </div>
             </div>
+            <section class="product-matrix-panel" aria-labelledby="productMatrixTitle">
+                <div class="matrix-heading"><div><h3 id="productMatrixTitle">Quantidades por bloco e produto</h3><p>Valores em kg com os filtros selecionados. Role para o lado para ver todos os produtos.</p></div><span id="productMatrixSummary" role="status"></span></div>
+                <div class="product-matrix-scroll" tabindex="0" role="region" aria-label="Tabela de quantidades por bloco e produto"><table id="productMatrix"></table></div>
+            </section>
         </div>
 
         <!-- TAB 4: REGISTROS BRUTOS -->
@@ -1222,6 +1226,6 @@
         }
 
     </script>
-<script src="dashboard.js"></script>
+<script src="dashboard.js?v=2"></script>
 </body>
 </html>
