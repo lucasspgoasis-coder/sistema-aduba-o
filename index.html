@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <!-- HTML2Canvas & jsPDF for JPEG/PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -38,6 +38,7 @@
             font-weight: 600;
         }
     </style>
+    <link rel="stylesheet" href="dashboard.css">
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col relative">
 
@@ -78,9 +79,9 @@
                 <div class="flex items-center bg-emerald-900/60 rounded-lg px-2.5 py-1 border border-emerald-600/40">
                     <i class="fa-regular fa-calendar text-emerald-300 mr-1.5"></i>
                     <span class="font-medium text-emerald-200 mr-1.5">Período:</span>
-                    <input type="date" id="dateStart" onchange="applyFilters()" class="bg-white text-gray-800 text-xs rounded px-1.5 py-0.5 outline-none">
+                    <input type="date" id="dateStart" aria-label="Data inicial" onchange="applyFilters()" class="bg-white text-gray-800 text-xs rounded px-1.5 py-0.5 outline-none">
                     <span class="mx-1 text-emerald-300">até</span>
-                    <input type="date" id="dateEnd" onchange="applyFilters()" class="bg-white text-gray-800 text-xs rounded px-1.5 py-0.5 outline-none">
+                    <input type="date" id="dateEnd" aria-label="Data final" onchange="applyFilters()" class="bg-white text-gray-800 text-xs rounded px-1.5 py-0.5 outline-none">
                 </div>
 
                 <!-- Multi-select Setor -->
@@ -397,7 +398,7 @@
     </main>
 
     <!-- Export Modal -->
-    <div id="exportModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="exportModal" role="dialog" aria-modal="true" aria-label="Baixar relatório" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div class="flex items-center gap-3">
@@ -418,7 +419,7 @@
                 <!-- Formato -->
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">1. Formato do Arquivo</label>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <label class="flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer hover:border-emerald-500 transition-all text-slate-700 font-medium text-sm has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/50">
                             <input type="radio" name="exportFormat" value="pdf" checked class="mr-2 text-emerald-600 focus:ring-emerald-500">
                             <i class="fa-solid fa-file-pdf text-red-500 mr-2"></i> Documento PDF
@@ -427,6 +428,7 @@
                             <input type="radio" name="exportFormat" value="jpeg" class="mr-2 text-emerald-600 focus:ring-emerald-500">
                             <i class="fa-solid fa-file-image text-blue-500 mr-2"></i> Imagem JPEG
                         </label>
+                        <label class="flex items-center justify-center p-3 border-2 rounded-xl cursor-pointer text-sm"><input type="radio" name="exportFormat" value="csv" class="mr-2"> Dados CSV</label>
                     </div>
                 </div>
 
@@ -473,14 +475,14 @@
                         <hr class="border-slate-200">
                         <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-medium">
                             <input type="checkbox" id="expTable" class="rounded text-emerald-600 focus:ring-emerald-500">
-                            <span><i class="fa-solid fa-table text-slate-500 mr-1.5"></i> Resumo Tabela de Registros</span>
+                            <span><i class="fa-solid fa-table text-slate-500 mr-1.5"></i> Tabela completa de registros</span>
                         </label>
                     </div>
                 </div>
 
                 <p class="text-xs text-slate-500 flex items-center gap-1.5 bg-amber-50 text-amber-800 p-2.5 rounded-lg border border-amber-200">
                     <i class="fa-solid fa-circle-info text-amber-600"></i>
-                    Proporção Retrato (1280px) pré-formatada para visualização perfeita dos dados.
+                    PDF em páginas A4 • JPEG em imagem • CSV com todos os registros filtrados.
                 </p>
             </div>
 
@@ -699,6 +701,11 @@
         }
 
         function applyFilters() {
+            const first = document.getElementById('dateStart');
+            const last = document.getElementById('dateEnd');
+            last.setCustomValidity(first.value && last.value && first.value > last.value ? 'A data final deve ser igual ou posterior à inicial.' : '');
+            if (!last.checkValidity()) { last.reportValidity(); return; }
+
             const startVal = document.getElementById('dateStart')?.value;
             const endVal = document.getElementById('dateEnd')?.value;
             
@@ -1214,121 +1221,7 @@
             });
         }
 
-        async function generateExport() {
-            const btn = document.getElementById('btnGenerateExport');
-            if (!btn) return;
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> Gerando...`;
-
-            try {
-                const format = document.querySelector('input[name="exportFormat"]:checked')?.value || 'pdf';
-                const renderContainer = document.getElementById('exportRenderContainer');
-                const chartsGrid = document.getElementById('expChartsGrid');
-                const kpiSection = document.getElementById('expKpiSection');
-                const tableSection = document.getElementById('expTableSection');
-                const tableBody = document.getElementById('expTableBody');
-
-                setElemText('expMetaInfo', `Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`);
-                const sVal = document.getElementById('dateStart')?.value;
-                const eVal = document.getElementById('dateEnd')?.value;
-                setElemText('expPeriodoTag', `Período: ${sVal ? sVal : 'Início'} até ${eVal ? eVal : 'Atual'}`);
-
-                if (document.getElementById('expKpis')?.checked) {
-                    if (kpiSection) kpiSection.classList.remove('hidden');
-                    setElemText('expKpiTotal', document.getElementById('kpiTotalKg')?.innerText || '-');
-                    setElemText('expKpiTempo', document.getElementById('kpiMediaTempo')?.innerText || '-');
-                    setElemText('expKpiBloco', document.getElementById('kpiMediaBloco')?.innerText || '-');
-                    setElemText('expKpiProduto', document.getElementById('kpiProdutoNome')?.innerText || '-');
-                } else if (kpiSection) {
-                    kpiSection.classList.add('hidden');
-                }
-
-                if (chartsGrid) chartsGrid.innerHTML = '';
-                const chartMap = [
-                    { id: 'expChartMes', sourceId: 'chartMes', title: 'Adubação Total por Mês (Kg)' },
-                    { id: 'expChartProdMes', sourceId: 'chartProdMes', title: 'Aplicação por Produto ao Mês (Kg)' },
-                    { id: 'expChartProdutoSetor', sourceId: 'chartProdutoSetor', title: 'Total por Produto em cada Bloco' },
-                    { id: 'expChartSemana', sourceId: 'chartSemana', title: 'Total Aplicado por Semana (Kg)' },
-                    { id: 'expChartSetor', sourceId: 'chartSetor', title: 'Distribuição por Setor (%)' },
-                    { id: 'expChartAplicador', sourceId: 'chartAplicador', title: 'Participação por Aplicador (%)' },
-                    { id: 'expChartMeio', sourceId: 'chartMeio', title: 'Total por Meio de Aplicação (Kg)' },
-                ];
-
-                chartMap.forEach(item => {
-                    const isChecked = document.getElementById(item.id)?.checked;
-                    if (isChecked && chartInstances[item.sourceId] && chartsGrid) {
-                        const chartCard = document.createElement('div');
-                        chartCard.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center';
-                        chartCard.innerHTML = `<h4 class="text-xs font-bold text-slate-700 mb-2 text-center w-full">${item.title}</h4>`;
-
-                        const img = document.createElement('img');
-                        img.src = chartInstances[item.sourceId].toBase64Image();
-                        // Ajuste para o gráfico horizontal poder ser maior na exportação
-                        img.className = item.sourceId === 'chartProdutoSetor' ? 'w-full h-auto max-h-96 object-contain rounded' : 'w-full h-auto max-h-64 object-contain rounded';
-                        
-                        if(item.sourceId === 'chartProdutoSetor') {
-                            chartCard.classList.add('col-span-2'); // Faz o gráfico horizontal ocupar as 2 colunas
-                        }
-
-                        chartCard.appendChild(img);
-                        chartsGrid.appendChild(chartCard);
-                    }
-                });
-
-                if (document.getElementById('expTable')?.checked && filteredData.length > 0) {
-                    if (tableSection) tableSection.classList.remove('hidden');
-                    let rows = filteredData.slice(0, 30).map(r => `
-                        <tr>
-                            <td class="p-1.5 border">${r['Data'] || ''}</td>
-                            <td class="p-1.5 border">${r['Semana'] || ''}</td>
-                            <td class="p-1.5 border font-semibold">${r['Setor'] || ''}</td>
-                            <td class="p-1.5 border">${r['Produto'] || ''}</td>
-                            <td class="p-1.5 border text-right font-bold text-emerald-600">${parseBRFloat(r['Kg']).toLocaleString('pt-BR')}</td>
-                            <td class="p-1.5 border">${r['Meio da aplicação'] || ''}</td>
-                            <td class="p-1.5 border">${r['Aplicador'] || ''}</td>
-                        </tr>
-                    `).join('');
-                    if (filteredData.length > 30) {
-                        rows += `<tr><td colspan="7" class="p-1.5 border text-center text-slate-400 font-medium">... e mais ${filteredData.length - 30} registros.</td></tr>`;
-                    }
-                    if (tableBody) tableBody.innerHTML = rows;
-                } else if (tableSection) {
-                    tableSection.classList.add('hidden');
-                }
-
-                const canvas = await html2canvas(renderContainer, {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff'
-                });
-
-                if (format === 'jpeg') {
-                    const link = document.createElement('a');
-                    link.download = `relatorio_adubacao_${new Date().toISOString().slice(0,10)}.jpg`;
-                    link.href = canvas.toDataURL('image/jpeg', 0.92);
-                    link.click();
-                } else {
-                    const { jsPDF } = window.jspdf;
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                    const pdf = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'px',
-                        format: [1280, canvas.height]
-                    });
-                    pdf.addImage(imgData, 'JPEG', 0, 0, 1280, canvas.height);
-                    pdf.save(`relatorio_adubacao_${new Date().toISOString().slice(0,10)}.pdf`);
-                }
-
-                closeExportModal();
-            } catch (err) {
-                console.error("Erro ao gerar exportação:", err);
-                alert("Ocorreu um erro ao gerar o arquivo. Tente novamente.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-download"></i> Gerar Arquivo`;
-            }
-        }
     </script>
+<script src="dashboard.js"></script>
 </body>
 </html>
