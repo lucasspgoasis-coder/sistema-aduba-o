@@ -39,7 +39,7 @@
         }
     </style>
     <link rel="stylesheet" href="dashboard.css?v=2">
-<link rel="icon" type="image/svg+xml" href="logo.svg"><link rel="stylesheet" href="layout.css?v=20261117-icons-3"></head>
+<link rel="icon" type="image/svg+xml" href="logo.svg"><link rel="stylesheet" href="layout.css?v=20261117-motion-4"></head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col relative">
 
     <!-- Loading Overlay -->
@@ -224,7 +224,7 @@
                 <!-- Chart 1: Total por Mês -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                     <div class="mb-4">
-                        <h3 class="font-bold text-slate-800 text-base">Adubação Total por Mês (Kg)</h3>
+                        <h3 class="font-bold text-slate-800 text-base" data-chart-heading="true"><span class="chart-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="5" width="18" height="17" rx="3"/><path d="M7 2v6M17 2v6M3 11h18M7 15h3M14 15h3M7 18h3"/></svg></span>Adubação Total por Mês (Kg)</h3>
                         <p class="text-xs text-slate-400">Soma acumulada de adubo aplicado mensalmente</p>
                     </div>
                     <div class="h-96 sm:h-[420px] w-full">
@@ -235,7 +235,7 @@
                 <!-- Chart 2: Produtos por Mês -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                     <div class="mb-4">
-                        <h3 class="font-bold text-slate-800 text-base">Aplicação por Produto ao Mês (Kg)</h3>
+                        <h3 class="font-bold text-slate-800 text-base" data-chart-heading="true"><span class="chart-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="5" width="18" height="17" rx="3"/><path d="M7 2v6M17 2v6M3 11h18M7 15h3M14 15h3M7 18h3"/></svg></span>Aplicação por Produto ao Mês (Kg)</h3>
                         <p class="text-xs text-slate-400">Distribuição individual de cada fertilizante ao longo dos meses</p>
                     </div>
                     <div class="h-96 sm:h-[420px] w-full">
@@ -251,7 +251,7 @@
                 <!-- Chart 3: Semanal -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div class="mb-4">
-                        <h3 class="font-bold text-slate-800 text-base">Total Aplicado por Semana (Kg)</h3>
+                        <h3 class="font-bold text-slate-800 text-base" data-chart-heading="true"><span class="chart-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="5" width="18" height="17" rx="3"/><path d="M7 2v6M17 2v6M3 11h18M7 15h3M14 15h3M7 18h3"/></svg></span>Total Aplicado por Semana (Kg)</h3>
                         <p class="text-xs text-slate-400">Comparativo quinzenal e semanal de volume de adubação</p>
                     </div>
                     <div class="h-96 sm:h-[420px] w-full">
@@ -262,7 +262,7 @@
                 <!-- Chart 4: Setores (%) -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div class="mb-4">
-                        <h3 class="font-bold text-slate-800 text-base">Distribuição por Setor (%)</h3>
+                        <h3 class="font-bold text-slate-800 text-base" data-chart-heading="true"><span class="chart-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-8h4v8M2 20h20"/></svg></span>Distribuição por Setor (%)</h3>
                         <p class="text-xs text-slate-400">Porcentagem do adubo total alocado por setor agrícola</p>
                     </div>
                     <div class="h-96 sm:h-[420px] w-full flex items-center justify-center">
@@ -273,7 +273,7 @@
                 <!-- Chart 5: Aplicadores (%) -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div class="mb-4">
-                        <h3 class="font-bold text-slate-800 text-base">Participação por Aplicador (%)</h3>
+                        <h3 class="font-bold text-slate-800 text-base" data-chart-heading="true"><span class="chart-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="9" cy="7" r="3"/><path d="M2 21v-3a7 7 0 0 1 14 0v3M16 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 4 5v2"/></svg></span>Participação por Aplicador (%)</h3>
                         <p class="text-xs text-slate-400">Proporção de adubação executada por cada operador</p>
                     </div>
                     <div class="h-96 sm:h-[420px] w-full">
@@ -284,7 +284,7 @@
                 <!-- Chart 6: Meio de Aplicação -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div class="mb-4">
-                        <h3 class="font-bold text-slate-800 text-base">Total por Meio de Aplicação (Kg)</h3>
+                        <h3 class="font-bold text-slate-800 text-base" data-chart-heading="true"><span class="chart-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-8h4v8M2 20h20"/></svg></span>Total por Meio de Aplicação (Kg)</h3>
                         <p class="text-xs text-slate-400">Volume aplicado categorizado por método (Manual, Trator, Fertirrigação)</p>
                     </div>
                     <div class="h-96 sm:h-[420px] w-full">
@@ -343,7 +343,7 @@
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                 <div class="mb-4 flex justify-between items-start">
                     <div>
-                        <h3 class="font-bold text-slate-800 text-base">Produtos aplicados por bloco · kg</h3>
+                        <h3 class="font-bold text-slate-800 text-base" data-chart-heading="true"><span class="chart-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-8h4v8M2 20h20"/></svg></span>Produtos aplicados por bloco · kg</h3>
                         <p class="text-xs text-slate-400">Cada barra representa um bloco. As cores identificam os produtos e os valores estão detalhados na tabela abaixo.</p>
                     </div>
                     <div class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-medium border border-emerald-200">
